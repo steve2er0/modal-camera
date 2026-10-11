@@ -65,6 +65,16 @@ The spatial view is a **sampled camera-plane operating deflection pattern at one
 
 **Export analysis JSON** now also includes spatial nodes, X/Y cosine/sine coefficients, fit residuals, phase reference, ROI, timing basis and display settings; it can be used with a spatial map alone. **Export spatial samples CSV** exports one row per grid sample in source pixels. The original point-trace CSV remains available separately.
 
+### Share response videos
+
+Use **Heatmap MP4**, **Isolated MP4**, or **Modal MP4** under the right-hand video. Apply a band to enable the first two; build a spatial map with a usable phase reference to enable modal export. Exports use the current sensitivity, added magnification gain or modal displacement gain. A changed fit frequency disables modal export until the map is rebuilt. The files are silent H.264 MP4 videos, encoded locally; nothing is uploaded or shared automatically. A **Save MP4** link remains available after encoding if the browser does not start the download automatically; the server holds the latest completed export in RAM until another export replaces it or the app restarts.
+
+Heatmap and isolated exports contain **every decoded frame at the encoded playback frame rate**, from the beginning of the clip. They ignore the preview's playback-speed dropdown and current scrub position. The capture-rate assumption does not speed up the exported recording. Modal export contains **four cycles at one display cycle per second, 30 fps**, starting at the current cycle phase, including sampled displacement arrows and the same supported-cell warp. This slowed animation represents the fitted harmonic response, rather than the original recording's motion history.
+
+Each export has permanent labels for its frequency/band, sensitivity, display gain, and analysis timebase. An assumed capture rate is explicitly labeled as unverified; encoded-time Hz is distinguished from physical frequency. Heatmap/isolation labels identify luminance RMS, and modal labels identify a sampled operating response. MP4 comment metadata also records these settings and the export frame rate/count. Analysis images are scaled proportionally to fit 640×480 with separate annotation space; exports do not restore source resolution or add measured information. Compression is for sharing, and exported pixels should not be used for displacement measurement. There is no audio.
+
+The [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg) dependency supplies the local encoder in standard platform wheels. It is included in `requirements.txt`; reinstall these requirements when upgrading an older copy. MP4 uses [FFmpeg's fast-start option](https://ffmpeg.org/ffmpeg-formats.html#MOV_002fMPEG_002d4_002fISOMBFF-muxers) so the index precedes video data. One export runs at a time, with a two-minute encoding limit. Temporary encoder files are removed after completion or failure, and settings are captured before encoding so another tab cannot silently change an in-progress export. Windows execution remains untested here.
+
 ## Timebase matters — especially slow-motion or archival clips
 
 The default frequency is **encoded video-time Hz**. Frame rate metadata cannot establish a physical capture rate, absence of aliasing, absence of synthesized frames, or real-time playback. Adjacent identical frames are flagged; irregular decoder timestamps are rejected; unavailable timestamps are disclosed. Interpolated or missing frames are not reliably detected.
@@ -111,6 +121,7 @@ Windows equivalents use `.\.venv\Scripts\python.exe`. Node is not needed to run 
 
 - `modal_camera/processing.py`: bounded decode, temporal filtering, pyramid magnification, tracking/quality and harmonic analysis.
 - `modal_camera/response.py`: sampled original-displacement harmonic field, phase references and supported-cell animation warping.
+- `modal_camera/video_export.py`: annotated heatmap/isolation/modal rendering and local H.264 MP4 encoding.
 - `modal_camera/synthetic.py`: continuous translated seeded textures and lossless FFV1 demo generation; regenerate with `python app.py --make-demos`.
 - `app.py`: loopback-only API, state, local import and exports.
 - `static/`, `templates/`: dependency-free browser interface; no build step.

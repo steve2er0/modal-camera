@@ -2,7 +2,7 @@
 from pathlib import Path
 from dataclasses import replace
 from tempfile import TemporaryDirectory
-from threading import RLock
+from threading import RLock, Lock
 import argparse
 import csv
 import io
@@ -17,6 +17,7 @@ from werkzeug.exceptions import HTTPException
 from modal_camera.processing import decode_video, magnify, track_points, analyze_tracks
 from modal_camera.synthetic import write_demos
 from modal_camera.response import measure_field, modal_frame
+from modal_camera.video_export import export_metadata, export_frames, write_mp4, export_filename
 
 ROOT = Path(__file__).resolve().parent
 app = Flask(__name__)
@@ -24,6 +25,8 @@ app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 state = {}
 lock = RLock()
+video_export_lock = Lock()
+latest_video_export = {}
 ALLOWED_EXTENSIONS = {'.mp4','.m4v','.mov','.avi','.mkv','.webm'}
 
 
@@ -235,6 +238,55 @@ def export(clip_id):
                       method='Original-frame fixed-reference pyramidal LK; magnification linear Eulerian Laplacian luminance',
                       caveat='Frequency is video-time Hz; verify original capture/playback speed. This is not an identified mode.')
         return Response(json.dumps(output,indent=2),mimetype='application/json',headers={'Content-Disposition':'attachment; filename=modal-camera-analysis.json'})
+
+
+@app.post('/api/export-video')
+def export_video():
+    data = request.get_json()
+    if not isinstance(data,dict):
+        raise ValueError('Export settings must be a JSON object.')
+    with lock:
+        video = current(data.get('id'))
+        view = data.get('view')
+        key_name = 'field_key' if view == 'modal' else 'render_key'
+        if not state.get(key_name) or data.get('key') != state.get(key_name):
+            raise ValueError('Export settings are no longer current. Rebuild the spatial map or apply the band first.')
+        metadata = export_metadata(video,view,numeric(data.get('sensitivity',85),'Sensitivity'),
+                                   numeric(data.get('modal_gain',10),'Modal gain'),
+                                   numeric(data.get('phase_start',0),'Start phase'),
+                                   state.get('render_info'),state.get('field'))
+        # Immutable arrays/results remain owned by this export if another tab
+        # replaces the clip or settings. Encoding does not hold the state lock.
+        frames = export_frames(video,metadata,state.get('render'),state.get('response_display'),
+                               state.get('field'),state.get('field_maps'))
+    if not video_export_lock.acquire(blocking=False):
+        raise ValueError('Another video export is in progress. Wait for it to finish and retry.')
+    try:
+        with TemporaryDirectory(prefix='modal-camera-export-') as temp:
+            path = Path(temp)/'response.mp4'
+            write_mp4(path,frames,metadata)
+            payload = path.read_bytes()
+        filename = export_filename(metadata)
+        if request.args.get('prepare') == '1':
+            export_key = secrets.token_hex(16)
+            with lock:
+                # Only the latest completed download is cached, as immutable
+                # compressed bytes. Active downloads keep their own file handle.
+                latest_video_export.clear()
+                latest_video_export.update(key=export_key,data=payload,filename=filename)
+            return jsonify(url=f'/api/export-video/{export_key}/{filename}',filename=filename)
+        return send_file(io.BytesIO(payload),mimetype='video/mp4',as_attachment=True,download_name=filename)
+    finally:
+        video_export_lock.release()
+
+
+@app.get('/api/export-video/<export_key>/<filename>')
+def download_exported_video(export_key,filename):
+    with lock:
+        if export_key != latest_video_export.get('key') or filename != latest_video_export.get('filename'):
+            raise ValueError('This video download has expired. Export the view again.')
+        payload = latest_video_export['data']
+    return send_file(io.BytesIO(payload),mimetype='video/mp4',as_attachment=True,download_name=filename)
 
 
 @app.get('/api/field-csv/<clip_id>')

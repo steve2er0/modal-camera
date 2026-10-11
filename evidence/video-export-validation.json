@@ -1,0 +1,112 @@
+{
+  "tests": 59,
+  "plate_exports": [
+    {
+      "view": "heatmap",
+      "path": "/Users/stephenwells/Documents/DevOps/modal-camera/local_videos/exports/plate-95hz-heatmap.mp4",
+      "bytes": 934681,
+      "fps": 30.0,
+      "frames": 468,
+      "duration_s": 15.6,
+      "metadata": {
+        "view": "heatmap",
+        "sensitivity": 76,
+        "analysis_fps": 240,
+        "encoded_fps": 30,
+        "timing_basis": "user-assumed capture time: one frame per captured sample",
+        "export_fps": 30,
+        "export_frames": 468,
+        "export_duration_s": 15.6,
+        "codec": "H.264 / yuv420p",
+        "audio": false,
+        "resolution": "Analysis image scaled to fit 640 x 480, with separate annotations",
+        "band_hz": [
+          92.648,
+          96.752
+        ],
+        "magnification_gain": 4.0,
+        "response_reference_rms": 4.316405296325684,
+        "interpretation": "Bandpassed luminance RMS; texture dependent, not displacement amplitude"
+      },
+      "encoding_s": 2.0086604160000006
+    },
+    {
+      "view": "isolated",
+      "path": "/Users/stephenwells/Documents/DevOps/modal-camera/local_videos/exports/plate-95hz-isolated.mp4",
+      "bytes": 656485,
+      "fps": 30.0,
+      "frames": 468,
+      "duration_s": 15.6,
+      "metadata": {
+        "view": "isolated",
+        "sensitivity": 76,
+        "analysis_fps": 240,
+        "encoded_fps": 30,
+        "timing_basis": "user-assumed capture time: one frame per captured sample",
+        "export_fps": 30,
+        "export_frames": 468,
+        "export_duration_s": 15.6,
+        "codec": "H.264 / yuv420p",
+        "audio": false,
+        "resolution": "Analysis image scaled to fit 640 x 480, with separate annotations",
+        "band_hz": [
+          92.648,
+          96.752
+        ],
+        "magnification_gain": 4.0,
+        "response_reference_rms": 4.316405296325684,
+        "interpretation": "Bandpassed luminance RMS; texture dependent, not displacement amplitude"
+      },
+      "encoding_s": 1.8000714580000015
+    },
+    {
+      "view": "modal",
+      "path": "/Users/stephenwells/Documents/DevOps/modal-camera/local_videos/exports/plate-95hz-modal.mp4",
+      "bytes": 136446,
+      "fps": 30.0,
+      "frames": 120,
+      "duration_s": 4.0,
+      "metadata": {
+        "view": "modal",
+        "sensitivity": 76,
+        "analysis_fps": 240,
+        "encoded_fps": 30,
+        "timing_basis": "user-assumed capture time: one frame per captured sample",
+        "export_fps": 30,
+        "export_frames": 120,
+        "export_duration_s": 4.0,
+        "codec": "H.264 / yuv420p",
+        "audio": false,
+        "resolution": "Analysis image scaled to fit 640 x 480, with separate annotations",
+        "frequency_hz": 95,
+        "axis": "y",
+        "modal_gain": 8,
+        "phase_start_deg": 0,
+        "display_cycles": 4,
+        "display_cycles_per_second": 1,
+        "phase_reference": "Grid 38 (strongest accepted Y response)",
+        "camera_reference_subtracted": false,
+        "interpretation": "Fitted camera-plane operating response; not an identified structural mode"
+      },
+      "encoding_s": 0.7118407500000004
+    }
+  ],
+  "physical_capture_time_verified": false,
+  "browser_checks": [
+    "Chrome requests completed for heatmap, isolated and modal exports with no captured JavaScript errors",
+    "Modal export disabled before field fit and after frequency edit; existing band exports remain enabled",
+    "Final download is a normal loopback HTTP link with persistent Save MP4 control",
+    "Browser download observation/media saving timed out; downloaded the UI-generated URL through the local API and decoded 360 H.264 frames at 60 fps",
+    "Plate shareable exports independently encoded and decoded locally using original recorded frames"
+  ],
+  "windows_execution_tested": false,
+  "browser_link_download": {
+    "status": 200,
+    "bytes": 177300,
+    "frames": 360,
+    "fps": 60,
+    "mimetype": "video/mp4",
+    "content_disposition": "attachment",
+    "browser_filesystem_save_verified": false
+  }
+}

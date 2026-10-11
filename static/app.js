@@ -15,7 +15,7 @@ async function task(message,work){
   const controls=[...document.querySelectorAll('button,input,select')],disabled=controls.map(control=>control.disabled);
   controls.forEach(control=>control.disabled=true);
   status(message);
-  try{await work();}catch(e){showError(e);}finally{busy=false;document.body.classList.remove('busy');controls.forEach((control,i)=>control.disabled=disabled[i]);}
+  try{await work();}catch(e){showError(e);}finally{busy=false;document.body.classList.remove('busy');controls.forEach((control,i)=>control.disabled=disabled[i]);updateVideoExportButtons();}
 }
 function notes(id,values){$(id).replaceChildren(...values.map(v=>{const p=document.createElement('p');p.textContent=v;return p;}));}
 function showTimebase(){

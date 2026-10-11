@@ -10,6 +10,7 @@ function invalidateField(){
   notes('fieldWarnings',[]);$('responseInspect').hidden=true;updateResponseHelp();
 }
 function resetResponse(){
+  clearVideoDownload();
   invalidateField();renderInfo=null;responsePixels=null;heatLayer=null;maskLayer=null;
   $('responseView').value='amplified';$('sensitivity').value='85';$('modalGain').value='10';$('modalPhase').value='0';
   $('modalPhaseLabel').textContent='0°';$('modalGainValue').textContent='10×';updateResponseHelp();
@@ -41,6 +42,27 @@ function updateExportLinks(){
   if(!clip)return;const query=new URLSearchParams({sensitivity:$('sensitivity').value,modal_gain:$('modalGain').value,view:$('responseView').value,calibration:$('calibration').value});
   $('jsonExport').href=`/api/export/${clip.id}?${query}`;$('fieldExport').href=`/api/field-csv/${clip.id}`;
 }
+function updateVideoExportButtons(){
+  const bandReady=Boolean(clip&&renderKey&&renderInfo&&responsePixels);
+  $('exportHeatmap').disabled=busy||!bandReady;$('exportIsolated').disabled=busy||!bandReady;
+  $('exportModal').disabled=busy||!clip||!spatialField||spatialField.reference.phase_deg===null;
+}
+function clearVideoDownload(){
+  $('videoDownload').hidden=true;$('videoDownload').removeAttribute('href');
+}
+async function downloadResponseVideo(view){
+  if(!clip)throw new Error('Load a video first.');
+  clearVideoDownload();
+  const data={id:clip.id,view,key:view==='modal'?spatialField?.key:renderKey,
+    sensitivity:Number($('sensitivity').value),modal_gain:Number($('modalGain').value),phase_start:Number($('modalPhase').value)};
+  const response=await fetch('/api/export-video?prepare=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const result=await response.json();if(!response.ok)throw new Error(result.error||'Video export failed.');
+  const link=$('videoDownload');link.href=result.url;link.download=result.filename;link.textContent=`Save ${result.filename}`;link.hidden=false;link.click();
+  status(`${viewNames[view]} MP4 ready. Download requested; use the Save MP4 link if your browser does not save it automatically.`);
+}
+for(const [id,view] of [['exportHeatmap','heatmap'],['exportIsolated','isolated'],['exportModal','modal']]){
+  $(id).onclick=()=>task(`Encoding ${viewNames[view].toLowerCase()} MP4 with the current sensitivity and gain…`,()=>downloadResponseVideo(view));
+}
 function updateResponseHelp(){
   const view=$('responseView').value,field=fieldViews.has(view);$('visualizationTitle').textContent=viewNames[view];
   $('sensitivityValue').textContent=$('sensitivity').value+'%';$('responseLegend').hidden=view==='amplified';
@@ -58,7 +80,7 @@ function updateResponseHelp(){
     $('responseScale').textContent=`0–${reference.toFixed(3)} luminance levels RMS; show above ${(reference*sensitivityThreshold()).toFixed(3)}. Colors saturate at the 99th percentile.`;
     $('responseHelp').textContent=view==='amplified'?'Magnified images are visualization only. Measurements use original frames.':`${renderInfo?renderInfo.low.toFixed(2)+'–'+renderInfo.high.toFixed(2)+' Hz · ':''}Stable mask from original band-response RMS, independent of gain. Brightness variation is texture-dependent and can include lighting flicker; dark does not prove stationary.`;
   }
-  updateExportLinks();if(hoverNode!==null&&spatialField)inspectNode(hoverNode);
+  updateExportLinks();updateVideoExportButtons();if(hoverNode!==null&&spatialField)inspectNode(hoverNode);
 }
 function centeredMessage(ctx,c,text){ctx.fillStyle='#101820dc';ctx.fillRect(0,c.height/2-22,c.width,44);ctx.fillStyle='#c0d1df';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(text,c.width/2,c.height/2+4);ctx.textAlign='left';}
 function drawResponse(ctx,c){
