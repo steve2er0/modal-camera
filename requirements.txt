@@ -1,0 +1,5 @@
+# Tested on macOS arm64 / Python 3.9.6. Wheels available on current Windows Python.
+numpy==2.0.2
+scipy==1.13.1
+opencv-python-headless==4.11.0.86
+Flask==3.0.0

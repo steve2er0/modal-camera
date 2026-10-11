@@ -1,0 +1,2387 @@
+{
+  "frequency_hz": 95.0,
+  "axis": "y",
+  "roi": null,
+  "timing_basis": "user-assumed capture time: one frame per captured sample",
+  "units": "source pixels peak; camera-plane X/Y displacement",
+  "grid": {
+    "x0": 16,
+    "y0": 16,
+    "step": 24,
+    "columns": 12,
+    "rows": 6
+  },
+  "nodes": [
+    {
+      "index": 0,
+      "x": 16.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.014150589042889855,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.013984187952029414,
+            -0.002163713840384126
+          ],
+          "rms_residual_px": 1.5157779463669963,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 4.3574152478189776e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.03151052859082239,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.01967707859011451,
+            0.024611501177934925
+          ],
+          "rms_residual_px": 1.142947877207059,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0003798949435623716
+        }
+      },
+      "amplitude_peak_px": 0.03151052859082239,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 1,
+      "x": 40.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.016137504966721266,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.013544734875149648,
+            -0.008772640635114288
+          ],
+          "rms_residual_px": 1.3196625343555162,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 7.476262435278498e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.027468708008770486,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.01981457906691949,
+            0.019023994745370587
+          ],
+          "rms_residual_px": 1.0133504547550742,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0003672549097665039
+        }
+      },
+      "amplitude_peak_px": 0.027468708008770486,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 2,
+      "x": 64.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.014090835014116855,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.012118950136726533,
+            -0.007189066627775643
+          ],
+          "rms_residual_px": 1.4909523313013133,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 4.465772060160624e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.028247600283743006,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.014602604385692448,
+            0.024180381861026796
+          ],
+          "rms_residual_px": 0.898284055648498,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0004941867132799299
+        }
+      },
+      "amplitude_peak_px": 0.028247600283743006,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 3,
+      "x": 88.0,
+      "y": 16.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 4,
+      "x": 112.0,
+      "y": 16.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 5,
+      "x": 136.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.014622878402586257,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.013514607672719796,
+            -0.005584259326829906
+          ],
+          "rms_residual_px": 1.3869932242681184,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 5.557288291473294e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.026538185395197138,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.017242693758134944,
+            0.020173368485035634
+          ],
+          "rms_residual_px": 0.6799647677008599,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0007610426370973883
+        }
+      },
+      "amplitude_peak_px": 0.026538185395197138,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 6,
+      "x": 160.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.013875796756659549,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.013110760608843443,
+            -0.00454375306214177
+          ],
+          "rms_residual_px": 1.3650485861396209,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 5.1661523382820494e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.028073670991351243,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.018738083935961065,
+            0.020904908833561414
+          ],
+          "rms_residual_px": 0.6231635033857442,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0010137337682201396
+        }
+      },
+      "amplitude_peak_px": 0.028073670991351243,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 7,
+      "x": 184.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.017171816882455972,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.014845758831753786,
+            -0.008629874839996488
+          ],
+          "rms_residual_px": 1.349288101220129,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 8.097630420110034e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.027767129823951967,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.017309736306667104,
+            0.021711437715035215
+          ],
+          "rms_residual_px": 0.5864066484597417,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.001119818431461531
+        }
+      },
+      "amplitude_peak_px": 0.027767129823951967,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 8,
+      "x": 208.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.01809669178825329,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.013439223288290777,
+            -0.012119304067746504
+          ],
+          "rms_residual_px": 1.1632219768465775,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00012100146626476165
+        },
+        "y": {
+          "amplitude_peak_px": 0.0265155242753178,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.015538810586752319,
+            0.021485306447523653
+          ],
+          "rms_residual_px": 0.5932975289776533,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0009976813608484764
+        }
+      },
+      "amplitude_peak_px": 0.0265155242753178,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 9,
+      "x": 232.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.019150357105495723,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.015472757102830186,
+            -0.011284057998115247
+          ],
+          "rms_residual_px": 1.0979747147384733,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00015208032350309654
+        },
+        "y": {
+          "amplitude_peak_px": 0.02752991096824128,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.015746503631887225,
+            0.02258193130115876
+          ],
+          "rms_residual_px": 0.6410932723921635,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0009211639606968575
+        }
+      },
+      "amplitude_peak_px": 0.02752991096824128,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 10,
+      "x": 256.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.022721810897915976,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.019050878859440196,
+            -0.012383242917894645
+          ],
+          "rms_residual_px": 1.0666938195220563,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00022681815421931283
+        },
+        "y": {
+          "amplitude_peak_px": 0.02913771868499085,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.018036264856809196,
+            0.022884488200103893
+          ],
+          "rms_residual_px": 0.7216562208473563,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0008144539239274017
+        }
+      },
+      "amplitude_peak_px": 0.02913771868499085,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 11,
+      "x": 280.0,
+      "y": 16.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.024446724055643503,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.019778040187696636,
+            -0.014369114217189434
+          ],
+          "rms_residual_px": 1.1522451544595433,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00022502140275766302
+        },
+        "y": {
+          "amplitude_peak_px": 0.02657851245804833,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.016548268149057202,
+            0.020798368824249878
+          ],
+          "rms_residual_px": 0.772030018469809,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0005922508383329706
+        }
+      },
+      "amplitude_peak_px": 0.02657851245804833,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 12,
+      "x": 16.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.013502469861418136,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.012477116117163262,
+            -0.00516122715614512
+          ],
+          "rms_residual_px": 1.4204773779167341,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 4.5176041531552824e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.02780672122546856,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.019647608941887423,
+            0.019677022340221836
+          ],
+          "rms_residual_px": 1.1528200166059512,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00029081729744292626
+        }
+      },
+      "amplitude_peak_px": 0.02780672122546856,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 13,
+      "x": 40.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.015429212284694765,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.014220469657899195,
+            -0.005986554471057976
+          ],
+          "rms_residual_px": 1.2256417718443895,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 7.923115630158895e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.02518308559201091,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.014806206534828227,
+            0.020370666360788433
+          ],
+          "rms_residual_px": 0.935477400892354,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0003622129315121292
+        }
+      },
+      "amplitude_peak_px": 0.02518308559201091,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 14,
+      "x": 64.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.015981733284721605,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.014322335591319584,
+            -0.007091297624102286
+          ],
+          "rms_residual_px": 1.3901895754223028,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 6.607558382622545e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.028789179041164657,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.0037522956444755525,
+            0.028543600110369473
+          ],
+          "rms_residual_px": 0.8498869626482987,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0005733992699409854
+        }
+      },
+      "amplitude_peak_px": 0.028789179041164657,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 15,
+      "x": 88.0,
+      "y": 40.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 16,
+      "x": 112.0,
+      "y": 40.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 17,
+      "x": 136.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.012992915611353984,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.01170282397377252,
+            -0.005644445687812154
+          ],
+          "rms_residual_px": 1.294821275882298,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 5.03433048089524e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.09505194266433183,
+          "phase_deg": 5.0458890396190865,
+          "coefficients_px": [
+            0.09468357591912864,
+            -0.008360158816076844
+          ],
+          "rms_residual_px": 0.6199446407218812,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.01161746153797485
+        }
+      },
+      "amplitude_peak_px": 0.09505194266433183,
+      "phase_deg": 5.0458890396190865,
+      "relative_phase_deg": 150.8314749797923,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 18,
+      "x": 160.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.008491616863300246,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.000377275211462667,
+            -0.008483231717211366
+          ],
+          "rms_residual_px": 1.2646076046161272,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 2.2543919086535168e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.10308554505727757,
+          "phase_deg": 6.339853696232964,
+          "coefficients_px": [
+            0.10245511367649385,
+            -0.011383289563774001
+          ],
+          "rms_residual_px": 0.5880735209024633,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.015131450678058846
+        }
+      },
+      "amplitude_peak_px": 0.10308554505727757,
+      "phase_deg": 6.339853696232964,
+      "relative_phase_deg": 152.12543963640616,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 19,
+      "x": 184.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.014293498809237233,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.012474425079197401,
+            -0.006978024588173724
+          ],
+          "rms_residual_px": 1.2075367951770681,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 7.005125717938786e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.03974013322542397,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.03773352775397298,
+            0.012468322742638527
+          ],
+          "rms_residual_px": 0.5718727567104751,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.002408698708177786
+        }
+      },
+      "amplitude_peak_px": 0.03974013322542397,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 20,
+      "x": 208.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.015573904687912718,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.008965743427712074,
+            -0.012734282548170018
+          ],
+          "rms_residual_px": 1.1146408309580695,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 9.760065766410591e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.024093746155569282,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.015059182294576505,
+            0.01880770141265867
+          ],
+          "rms_residual_px": 0.57717638803722,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0008705291585112549
+        }
+      },
+      "amplitude_peak_px": 0.024093746155569282,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 21,
+      "x": 232.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.012282494510817771,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.0035965687457176674,
+            -0.011744120429627565
+          ],
+          "rms_residual_px": 1.0470239299924127,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 6.880184192412416e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.0793195818422529,
+          "phase_deg": -143.8518201599258,
+          "coefficients_px": [
+            -0.06405009791608524,
+            0.04678868474930398
+          ],
+          "rms_residual_px": 0.6038775370826535,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.008552689883314119
+        }
+      },
+      "amplitude_peak_px": 0.0793195818422529,
+      "phase_deg": -143.8518201599258,
+      "relative_phase_deg": 1.9337657802473984,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 22,
+      "x": 256.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.015987977837568345,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.012527332948537842,
+            -0.009933849431668204
+          ],
+          "rms_residual_px": 1.0092541709635714,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00012545890252526053
+        },
+        "y": {
+          "amplitude_peak_px": 0.024205739808244107,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.016752798670495856,
+            0.017471736501282458
+          ],
+          "rms_residual_px": 0.6740162526830923,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.000644445237647375
+        }
+      },
+      "amplitude_peak_px": 0.024205739808244107,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 23,
+      "x": 280.0,
+      "y": 40.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.018160775801105575,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.014813937432788665,
+            -0.010505286071090334
+          ],
+          "rms_residual_px": 1.0370516883360785,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00015331032547622256
+        },
+        "y": {
+          "amplitude_peak_px": 0.023674093509595782,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.016968681960727615,
+            0.01650837775242505
+          ],
+          "rms_residual_px": 0.7760133776615761,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0004651320377355352
+        }
+      },
+      "amplitude_peak_px": 0.023674093509595782,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 24,
+      "x": 16.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.377267700274775,
+          "phase_deg": -147.10778677500312,
+          "coefficients_px": [
+            -0.31678930239249353,
+            0.20487912426671193
+          ],
+          "rms_residual_px": 1.4302263531509005,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.03362074256973886
+        },
+        "y": {
+          "amplitude_peak_px": 0.025377423107567142,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.005219883029309529,
+            0.024834782558758376
+          ],
+          "rms_residual_px": 1.1197801005564691,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00025673675098635684
+        }
+      },
+      "amplitude_peak_px": 0.025377423107567142,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 25,
+      "x": 40.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.5581122468406138,
+          "phase_deg": -149.24496979243764,
+          "coefficients_px": [
+            -0.4796201887118464,
+            0.28540104178767634
+          ],
+          "rms_residual_px": 1.3867474604217702,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0749199798744483
+        },
+        "y": {
+          "amplitude_peak_px": 0.049581820567957055,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.029267843567333293,
+            0.040021872316911865
+          ],
+          "rms_residual_px": 0.9560000528524722,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0013431218304764806
+        }
+      },
+      "amplitude_peak_px": 0.049581820567957055,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 26,
+      "x": 64.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.06142531121194034,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.05789664239367728,
+            0.020519445826395356
+          ],
+          "rms_residual_px": 1.3225902375313998,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.001077323125164692
+        },
+        "y": {
+          "amplitude_peak_px": 0.08095716461705679,
+          "phase_deg": -139.72582330923666,
+          "coefficients_px": [
+            -0.06176705900980961,
+            0.052334433445982105
+          ],
+          "rms_residual_px": 0.8428408121387422,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0045918812452974515
+        }
+      },
+      "amplitude_peak_px": 0.08095716461705679,
+      "phase_deg": -139.72582330923666,
+      "relative_phase_deg": 6.059762630936547,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 27,
+      "x": 88.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.06874364924689705,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.06101120541413169,
+            0.03167526046767473
+          ],
+          "rms_residual_px": 1.448142624293416,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0011254428538790898
+        },
+        "y": {
+          "amplitude_peak_px": 0.020847193538607943,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.0035306258568082614,
+            0.020546049729702635
+          ],
+          "rms_residual_px": 0.7752815395044638,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0003614009851964899
+        }
+      },
+      "amplitude_peak_px": 0.020847193538607943,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 28,
+      "x": 112.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.09064366079083504,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.08233517690531064,
+            -0.03791031370926869
+          ],
+          "rms_residual_px": 1.267022562081878,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0025525027934454594
+        },
+        "y": {
+          "amplitude_peak_px": 0.09188004644126381,
+          "phase_deg": 7.8647752916701,
+          "coefficients_px": [
+            0.09101580206833867,
+            -0.012572458307975858
+          ],
+          "rms_residual_px": 0.7095090090115229,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.008315153386480117
+        }
+      },
+      "amplitude_peak_px": 0.09188004644126381,
+      "phase_deg": 7.8647752916701,
+      "relative_phase_deg": 153.6503612318433,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 29,
+      "x": 136.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.02534646337758703,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.01970850258300151,
+            -0.015937946281976964
+          ],
+          "rms_residual_px": 1.2844023870384176,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0001946784952731465
+        },
+        "y": {
+          "amplitude_peak_px": 0.3641083132088385,
+          "phase_deg": 18.34145506517881,
+          "coefficients_px": [
+            0.3456108997996775,
+            -0.11457735241941541
+          ],
+          "rms_residual_px": 0.6222569933824884,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.146171374906376
+        }
+      },
+      "amplitude_peak_px": 0.3641083132088385,
+      "phase_deg": 18.34145506517881,
+      "relative_phase_deg": 164.127041005352,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 30,
+      "x": 160.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.006994826995784043,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.0010023505220371142,
+            -0.006922636645955148
+          ],
+          "rms_residual_px": 1.2472670726350141,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 1.5725273777719248e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.3218965300657995,
+          "phase_deg": 17.193708183816348,
+          "coefficients_px": [
+            0.307511240964751,
+            -0.09515362709177709
+          ],
+          "rms_residual_px": 0.5695506524260179,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.1377170431400287
+        }
+      },
+      "amplitude_peak_px": 0.3218965300657995,
+      "phase_deg": 17.193708183816348,
+      "relative_phase_deg": 162.97929412398958,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 31,
+      "x": 184.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.022261253196723015,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.014371310767289864,
+            -0.01700084764706128
+          ],
+          "rms_residual_px": 1.2021719338453187,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0001714200433129727
+        },
+        "y": {
+          "amplitude_peak_px": 0.19693094453112545,
+          "phase_deg": 17.2216882983358,
+          "coefficients_px": [
+            0.18810181319576086,
+            -0.05830527237213025
+          ],
+          "rms_residual_px": 0.5503358417483905,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.06017151415561217
+        }
+      },
+      "amplitude_peak_px": 0.19693094453112545,
+      "phase_deg": 17.2216882983358,
+      "relative_phase_deg": 163.007274238509,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 32,
+      "x": 208.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.37023532786679536,
+          "phase_deg": 25.82076059771003,
+          "coefficients_px": [
+            0.3332714067908625,
+            -0.16125869718025423
+          ],
+          "rms_residual_px": 1.1564143472848825,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.04875201017868255
+        },
+        "y": {
+          "amplitude_peak_px": 0.07786759286420622,
+          "phase_deg": -140.98752152703545,
+          "coefficients_px": [
+            -0.060503811358209834,
+            0.04901684230543558
+          ],
+          "rms_residual_px": 0.570176244431696,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.009239193927615935
+        }
+      },
+      "amplitude_peak_px": 0.07786759286420622,
+      "phase_deg": -140.98752152703545,
+      "relative_phase_deg": 4.798064413137752,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 33,
+      "x": 232.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.6865181606543173,
+          "phase_deg": 23.905279464138204,
+          "coefficients_px": [
+            0.6276263123839873,
+            -0.27819489016059346
+          ],
+          "rms_residual_px": 1.2395365899150477,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.13297950870253059
+        },
+        "y": {
+          "amplitude_peak_px": 0.5391449275622239,
+          "phase_deg": -156.61003848421223,
+          "coefficients_px": [
+            -0.49484025844638724,
+            0.21403357572303536
+          ],
+          "rms_residual_px": 0.610332483560034,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.2806608234729064
+        }
+      },
+      "amplitude_peak_px": 0.5391449275622239,
+      "phase_deg": -156.61003848421223,
+      "relative_phase_deg": -10.82445254403902,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 34,
+      "x": 256.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.43898831355351886,
+          "phase_deg": 31.747529385450893,
+          "coefficients_px": [
+            0.37330464970905053,
+            -0.2309856660967638
+          ],
+          "rms_residual_px": 1.1561892357076826,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.06723426516308688
+        },
+        "y": {
+          "amplitude_peak_px": 0.31954801296721086,
+          "phase_deg": -146.15661450429945,
+          "coefficients_px": [
+            -0.26540475407430697,
+            0.17796417927787994
+          ],
+          "rms_residual_px": 0.6596328917260139,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.10501544598589148
+        }
+      },
+      "amplitude_peak_px": 0.31954801296721086,
+      "phase_deg": -146.15661450429945,
+      "relative_phase_deg": -0.37102856412624874,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 35,
+      "x": 280.0,
+      "y": 64.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.018330846793848016,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.01682426194939914,
+            -0.0072776475620579765
+          ],
+          "rms_residual_px": 1.0590893070658616,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00014976310891867564
+        },
+        "y": {
+          "amplitude_peak_px": 0.017313945688041194,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.014325040220127906,
+            0.009724501939953433
+          ],
+          "rms_residual_px": 0.7576679618973524,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0002610302746715191
+        }
+      },
+      "amplitude_peak_px": 0.017313945688041194,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 36,
+      "x": 16.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.11601854198027066,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.10426535013074345,
+            -0.05088259864964939
+          ],
+          "rms_residual_px": 1.759919697817139,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0021681855883464484
+        },
+        "y": {
+          "amplitude_peak_px": 0.7838461444666445,
+          "phase_deg": -131.2119988753961,
+          "coefficients_px": [
+            -0.516434693531979,
+            0.5896693866157158
+          ],
+          "rms_residual_px": 1.1718689027817872,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.18280886231790172
+        }
+      },
+      "amplitude_peak_px": 0.7838461444666445,
+      "phase_deg": -131.2119988753961,
+      "relative_phase_deg": 14.573587064777115,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 37,
+      "x": 40.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.8738588100543759,
+          "phase_deg": -147.9963367427408,
+          "coefficients_px": [
+            -0.7410446915687833,
+            0.46312199797394293
+          ],
+          "rms_residual_px": 1.6820809439784987,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.11890050837894939
+        },
+        "y": {
+          "amplitude_peak_px": 1.0952278649706797,
+          "phase_deg": -131.95217384678386,
+          "coefficients_px": [
+            -0.7321708376357174,
+            0.8145243647209367
+          ],
+          "rms_residual_px": 1.0604564685601656,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.3478232426979286
+        }
+      },
+      "amplitude_peak_px": 1.0952278649706797,
+      "phase_deg": -131.95217384678386,
+      "relative_phase_deg": 13.833412093389342,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 38,
+      "x": 64.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.27079846036351213,
+          "phase_deg": -144.19910937948254,
+          "coefficients_px": [
+            -0.21963237111384082,
+            0.15840905180626752
+          ],
+          "rms_residual_px": 1.721833211663009,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.012216366436928376
+        },
+        "y": {
+          "amplitude_peak_px": 0.5362864533839092,
+          "phase_deg": -133.6414215158767,
+          "coefficients_px": [
+            -0.370114286887403,
+            0.38809608955118446
+          ],
+          "rms_residual_px": 0.9757642564640306,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.13121570258213872
+        }
+      },
+      "amplitude_peak_px": 0.5362864533839092,
+      "phase_deg": -133.6414215158767,
+      "relative_phase_deg": 12.14416442429652,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 39,
+      "x": 88.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.18034161910796973,
+          "phase_deg": -137.7391594141419,
+          "coefficients_px": [
+            -0.13346919115797645,
+            0.12128097375153105
+          ],
+          "rms_residual_px": 1.6933240696400989,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.005639306745989404
+        },
+        "y": {
+          "amplitude_peak_px": 0.15629046888457743,
+          "phase_deg": 42.19188344271291,
+          "coefficients_px": [
+            0.11579556857809298,
+            -0.1049671232426479
+          ],
+          "rms_residual_px": 0.8545807926865122,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.01644848299131888
+        }
+      },
+      "amplitude_peak_px": 0.15629046888457743,
+      "phase_deg": 42.19188344271291,
+      "relative_phase_deg": -172.0225306171139,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 40,
+      "x": 112.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.04296495910333248,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.032866764265399154,
+            0.027672432445914715
+          ],
+          "rms_residual_px": 1.490991692817953,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00041501910012624077
+        },
+        "y": {
+          "amplitude_peak_px": 0.6236127611972287,
+          "phase_deg": 44.59603753776824,
+          "coefficients_px": [
+            0.4440588098527529,
+            -0.4378408949837697
+          ],
+          "rms_residual_px": 0.7691630645299503,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.24736899082766528
+        }
+      },
+      "amplitude_peak_px": 0.6236127611972287,
+      "phase_deg": 44.59603753776824,
+      "relative_phase_deg": -169.61837652205855,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 41,
+      "x": 136.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.019073025780522536,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.002914125282265288,
+            -0.018849089799344146
+          ],
+          "rms_residual_px": 1.478495013767342,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 8.320191684632509e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.8197754294812593,
+          "phase_deg": 44.65248113895136,
+          "coefficients_px": [
+            0.5831739741357004,
+            -0.5761422312866473
+          ],
+          "rms_residual_px": 0.7020492439577827,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.40538102201746046
+        }
+      },
+      "amplitude_peak_px": 0.8197754294812593,
+      "phase_deg": 44.65248113895136,
+      "relative_phase_deg": -169.56193292087545,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 42,
+      "x": 160.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.03543180730399195,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.02178185359244064,
+            0.027945729958344226
+          ],
+          "rms_residual_px": 1.4356974126498163,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00030443777826020873
+        },
+        "y": {
+          "amplitude_peak_px": 0.8120754112685642,
+          "phase_deg": 44.71875632050618,
+          "coefficients_px": [
+            0.577035753251507,
+            -0.571398471345937
+          ],
+          "rms_residual_px": 0.6630529802894055,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.428574247782111
+        }
+      },
+      "amplitude_peak_px": 0.8120754112685642,
+      "phase_deg": 44.71875632050618,
+      "relative_phase_deg": -169.49565773932062,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 43,
+      "x": 184.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.034097576681072786,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.027768142599102503,
+            0.01978825389258859
+          ],
+          "rms_residual_px": 1.3742451252221235,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0003077194603736716
+        },
+        "y": {
+          "amplitude_peak_px": 0.5106272703802518,
+          "phase_deg": 43.65480970736857,
+          "coefficients_px": [
+            0.3694448725463287,
+            -0.3524921210540935
+          ],
+          "rms_residual_px": 0.6535529819150184,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.23384704816272078
+        }
+      },
+      "amplitude_peak_px": 0.5106272703802518,
+      "phase_deg": 43.65480970736857,
+      "relative_phase_deg": -170.55960435245822,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 44,
+      "x": 208.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.25217766184371077,
+          "phase_deg": 35.848958064972905,
+          "coefficients_px": [
+            0.20440605578090326,
+            -0.14768797342050302
+          ],
+          "rms_residual_px": 1.4967040473353346,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.013995558593298082
+        },
+        "y": {
+          "amplitude_peak_px": 0.06235880742248454,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.054852268232638675,
+            -0.029662257717327778
+          ],
+          "rms_residual_px": 0.6755657925222629,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.004242130766661619
+        }
+      },
+      "amplitude_peak_px": 0.06235880742248454,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 45,
+      "x": 232.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.001395044506055218,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.00014122509970120354,
+            -0.0013878777486108897
+          ],
+          "rms_residual_px": 1.0922992162393637,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 8.155724225614267e-07
+        },
+        "y": {
+          "amplitude_peak_px": 0.33972696444233375,
+          "phase_deg": -133.96417979547545,
+          "coefficients_px": [
+            -0.2358413523446617,
+            0.24452661796508748
+          ],
+          "rms_residual_px": 0.7103716440016413,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.10262067486841371
+        }
+      },
+      "amplitude_peak_px": 0.33972696444233375,
+      "phase_deg": -133.96417979547545,
+      "relative_phase_deg": 11.821406144697761,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 46,
+      "x": 256.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.47635264401148303,
+          "phase_deg": 30.868541843683012,
+          "coefficients_px": [
+            0.4088757368773034,
+            -0.24440227750529014
+          ],
+          "rms_residual_px": 1.3197190879968244,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.06115844996976843
+        },
+        "y": {
+          "amplitude_peak_px": 0.6321667711393247,
+          "phase_deg": -136.8328179081006,
+          "coefficients_px": [
+            -0.46107753745079316,
+            0.4324839083607988
+          ],
+          "rms_residual_px": 0.7504020382872332,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.2619111409473676
+        }
+      },
+      "amplitude_peak_px": 0.6321667711393247,
+      "phase_deg": -136.8328179081006,
+      "relative_phase_deg": 8.952768032072612,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 47,
+      "x": 280.0,
+      "y": 88.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.43107003398458715,
+          "phase_deg": 41.91370200907532,
+          "coefficients_px": [
+            0.32078154862024955,
+            -0.28795932397522334
+          ],
+          "rms_residual_px": 1.2340324344897724,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.05750324911847249
+        },
+        "y": {
+          "amplitude_peak_px": 0.04490162377985315,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.04257910139683794,
+            -0.014253979875994888
+          ],
+          "rms_residual_px": 0.7997533700246462,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0015736132014172132
+        }
+      },
+      "amplitude_peak_px": 0.04490162377985315,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 48,
+      "x": 16.0,
+      "y": 112.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.4221596694321908,
+          "phase_deg": 47.239450102922035,
+          "coefficients_px": [
+            0.28661937417088507,
+            -0.3099485777431263
+          ],
+          "rms_residual_px": 1.518587986290581,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.03720302747130885
+        },
+        "y": {
+          "amplitude_peak_px": 0.460849136417488,
+          "phase_deg": -131.49955948487812,
+          "coefficients_px": [
+            -0.3053652232762602,
+            0.34515794493272817
+          ],
+          "rms_residual_px": 1.1594410098953654,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.07321018398945013
+        }
+      },
+      "amplitude_peak_px": 0.460849136417488,
+      "phase_deg": -131.49955948487812,
+      "relative_phase_deg": 14.286026455295087,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 49,
+      "x": 40.0,
+      "y": 112.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.7297395861469835,
+          "phase_deg": 47.650816574865374,
+          "coefficients_px": [
+            0.4915870101093096,
+            -0.5393163033709999
+          ],
+          "rms_residual_px": 1.364398724973158,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.12513133258673534
+        },
+        "y": {
+          "amplitude_peak_px": 1.0664085712181288,
+          "phase_deg": -132.03935778660662,
+          "coefficients_px": [
+            -0.7141108291978527,
+            0.7920056593168043
+          ],
+          "rms_residual_px": 1.09413431488316,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.32202503599199706
+        }
+      },
+      "amplitude_peak_px": 1.0664085712181288,
+      "phase_deg": -132.03935778660662,
+      "relative_phase_deg": 13.746228153566591,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 50,
+      "x": 64.0,
+      "y": 112.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 51,
+      "x": 88.0,
+      "y": 112.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 52,
+      "x": 112.0,
+      "y": 112.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.042876504689496595,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.010997513774550905,
+            -0.04144212042315145
+          ],
+          "rms_residual_px": 1.3252546277252986,
+          "accepted_fit_fraction": 0.9805194805194806,
+          "samples": 453,
+          "harmonic_power_fraction": 0.0005230977549098064
+        },
+        "y": {
+          "amplitude_peak_px": 0.639133567183806,
+          "phase_deg": 44.616472833281136,
+          "coefficients_px": [
+            0.4549507043160126,
+            -0.4489004047040509
+          ],
+          "rms_residual_px": 0.7927155900672664,
+          "accepted_fit_fraction": 0.9805194805194806,
+          "samples": 453,
+          "harmonic_power_fraction": 0.24529798022278484
+        }
+      },
+      "amplitude_peak_px": 0.639133567183806,
+      "phase_deg": 44.616472833281136,
+      "relative_phase_deg": -169.5979412265457,
+      "valid_fraction": 0.9807692307692307,
+      "warnings": [
+        "Tracking quality dropped in 9/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 53,
+      "x": 136.0,
+      "y": 112.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.13447814145748,
+          "phase_deg": 52.6511853449968,
+          "coefficients_px": [
+            0.08158330338005386,
+            -0.10690432703803945
+          ],
+          "rms_residual_px": 1.4177469720297995,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.004478438501888649
+        },
+        "y": {
+          "amplitude_peak_px": 0.5071505424113771,
+          "phase_deg": 45.44608855226433,
+          "coefficients_px": [
+            0.35580671521967583,
+            -0.3613907221730222
+          ],
+          "rms_residual_px": 0.6821973164150874,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.2165019059406097
+        }
+      },
+      "amplitude_peak_px": 0.5071505424113771,
+      "phase_deg": 45.44608855226433,
+      "relative_phase_deg": -168.76832550756245,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 54,
+      "x": 160.0,
+      "y": 112.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.13192190001891768,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.08023768292684633,
+            -0.1047153376689976
+          ],
+          "rms_residual_px": 1.4254734154013577,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.004264122871399239
+        },
+        "y": {
+          "amplitude_peak_px": 0.5127214816966901,
+          "phase_deg": 45.33307135675836,
+          "coefficients_px": [
+            0.3604351566817815,
+            -0.3646502648031794
+          ],
+          "rms_residual_px": 0.6554535485972374,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.23427337809776416
+        }
+      },
+      "amplitude_peak_px": 0.5127214816966901,
+      "phase_deg": 45.33307135675836,
+      "relative_phase_deg": -168.8813427030684,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 55,
+      "x": 184.0,
+      "y": 112.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 56,
+      "x": 208.0,
+      "y": 112.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 57,
+      "x": 232.0,
+      "y": 112.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.03722746964472858,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.031714645417228,
+            0.019495275381709455
+          ],
+          "rms_residual_px": 1.0295729099359172,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.000653279482384724
+        },
+        "y": {
+          "amplitude_peak_px": 0.15667866345845735,
+          "phase_deg": -129.4743402172681,
+          "coefficients_px": [
+            -0.09960573192447651,
+            0.12094172874123246
+          ],
+          "rms_residual_px": 0.7252802824799468,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.022801364170862714
+        }
+      },
+      "amplitude_peak_px": 0.15667866345845735,
+      "phase_deg": -129.4743402172681,
+      "relative_phase_deg": 16.311245722905113,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 58,
+      "x": 256.0,
+      "y": 112.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.015677113010792262,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.015227954618031307,
+            -0.0037257577087528196
+          ],
+          "rms_residual_px": 1.040122935365415,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00011357519957041524
+        },
+        "y": {
+          "amplitude_peak_px": 0.01324002668239021,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.0024404981919105956,
+            0.013013157769184458
+          ],
+          "rms_residual_px": 0.7014388703850256,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00017811098606942665
+        }
+      },
+      "amplitude_peak_px": 0.01324002668239021,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 59,
+      "x": 280.0,
+      "y": 112.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.015518051300154455,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.01528133344140538,
+            -0.0027001415531062375
+          ],
+          "rms_residual_px": 1.005097929793431,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00011917244643384913
+        },
+        "y": {
+          "amplitude_peak_px": 0.007444907654358166,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.007060156355869477,
+            0.002362380623988574
+          ],
+          "rms_residual_px": 0.7535398419032933,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 4.880395292048125e-05
+        }
+      },
+      "amplitude_peak_px": 0.007444907654358166,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 60,
+      "x": 16.0,
+      "y": 136.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.13427946256596152,
+          "phase_deg": -119.81096284657444,
+          "coefficients_px": [
+            -0.06675569044017622,
+            0.1165103079596772
+          ],
+          "rms_residual_px": 1.429595060855819,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.004391890870429049
+        },
+        "y": {
+          "amplitude_peak_px": 0.04652357149865398,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.0028439676697922024,
+            0.0464365648264764
+          ],
+          "rms_residual_px": 1.1445762619625017,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0008254067414908866
+        }
+      },
+      "amplitude_peak_px": 0.04652357149865398,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 61,
+      "x": 40.0,
+      "y": 136.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 62,
+      "x": 64.0,
+      "y": 136.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 63,
+      "x": 88.0,
+      "y": 136.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 64,
+      "x": 112.0,
+      "y": 136.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.018927943505907468,
+          "phase_deg": null,
+          "coefficients_px": [
+            -6.748992852598954e-05,
+            -0.018927823183672556
+          ],
+          "rms_residual_px": 1.2408308411787374,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00011633253235722968
+        },
+        "y": {
+          "amplitude_peak_px": 0.07326427036417259,
+          "phase_deg": 60.51975434337169,
+          "coefficients_px": [
+            0.03605506557067142,
+            -0.06377840981624709
+          ],
+          "rms_residual_px": 0.7637391454575784,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.004580055054587513
+        }
+      },
+      "amplitude_peak_px": 0.07326427036417259,
+      "phase_deg": 60.51975434337169,
+      "relative_phase_deg": -153.69465971645513,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 65,
+      "x": 136.0,
+      "y": 136.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.02485930195663439,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.0035456776148541586,
+            -0.02460514304007698
+          ],
+          "rms_residual_px": 1.410263097993123,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00015533885923943983
+        },
+        "y": {
+          "amplitude_peak_px": 0.0315365660809698,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.019861149158286257,
+            -0.02449672946112767
+          ],
+          "rms_residual_px": 0.6701489345033732,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0011060519571018937
+        }
+      },
+      "amplitude_peak_px": 0.0315365660809698,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 66,
+      "x": 160.0,
+      "y": 136.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.017537828365905853,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.002981288300194538,
+            -0.01728257341552742
+          ],
+          "rms_residual_px": 1.405692407548607,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 7.782286907992719e-05
+        },
+        "y": {
+          "amplitude_peak_px": 0.012606592902813097,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.010189172061135156,
+            -0.00742340604613814
+          ],
+          "rms_residual_px": 0.6524350355108617,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00018664220109480085
+        }
+      },
+      "amplitude_peak_px": 0.012606592902813097,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 67,
+      "x": 184.0,
+      "y": 136.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.01779642409269064,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.01660289732266588,
+            0.006407535484093253
+          ],
+          "rms_residual_px": 1.1233939905871948,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.00012546333086623112
+        },
+        "y": {
+          "amplitude_peak_px": 0.013703420391488787,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.012971282165593512,
+            -0.004419227240867613
+          ],
+          "rms_residual_px": 0.6068191789074776,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.000254916910617176
+        }
+      },
+      "amplitude_peak_px": 0.013703420391488787,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 68,
+      "x": 208.0,
+      "y": 136.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 69,
+      "x": 232.0,
+      "y": 136.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.05089671650450768,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.008685882038060026,
+            -0.05015008678119242
+          ],
+          "rms_residual_px": 1.0805269791620677,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.0011081454745037935
+        },
+        "y": {
+          "amplitude_peak_px": 0.08904508797550173,
+          "phase_deg": -110.17598711553045,
+          "coefficients_px": [
+            -0.03071208205262894,
+            0.08358107266933962
+          ],
+          "rms_residual_px": 0.6321080169088367,
+          "accepted_fit_fraction": 1.0,
+          "samples": 462,
+          "harmonic_power_fraction": 0.009824702974383346
+        }
+      },
+      "amplitude_peak_px": 0.08904508797550173,
+      "phase_deg": -110.17598711553045,
+      "relative_phase_deg": 35.609598824642774,
+      "valid_fraction": 1.0,
+      "warnings": []
+    },
+    {
+      "index": 70,
+      "x": 256.0,
+      "y": 136.0,
+      "fit": {
+        "x": null,
+        "y": null
+      },
+      "amplitude_peak_px": null,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.0,
+      "warnings": [
+        "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+        "Tracking quality dropped in 468/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    },
+    {
+      "index": 71,
+      "x": 280.0,
+      "y": 136.0,
+      "fit": {
+        "x": {
+          "amplitude_peak_px": 0.014925546399330176,
+          "phase_deg": null,
+          "coefficients_px": [
+            -0.014308502931215678,
+            0.004247196626711591
+          ],
+          "rms_residual_px": 1.0434210719534993,
+          "accepted_fit_fraction": 0.9978354978354979,
+          "samples": 461,
+          "harmonic_power_fraction": 0.00010229793009632224
+        },
+        "y": {
+          "amplitude_peak_px": 0.0073438921661683155,
+          "phase_deg": null,
+          "coefficients_px": [
+            0.006499040885122118,
+            0.0034198274403571113
+          ],
+          "rms_residual_px": 0.7326288869614724,
+          "accepted_fit_fraction": 0.9978354978354979,
+          "samples": 461,
+          "harmonic_power_fraction": 5.0238040438696644e-05
+        }
+      },
+      "amplitude_peak_px": 0.0073438921661683155,
+      "phase_deg": null,
+      "relative_phase_deg": null,
+      "valid_fraction": 0.9978632478632479,
+      "warnings": [
+        "Tracking quality dropped in 1/468 frames. Rejected samples are gaps; fits never interpolate them."
+      ]
+    }
+  ],
+  "accepted_nodes": 59,
+  "phase_nodes": 29,
+  "amplitude_display_max_px": 1.0952278649706797,
+  "reference": {
+    "label": "P1",
+    "phase_deg": -145.7855859401732,
+    "location": {
+      "x": 236,
+      "y": 79
+    }
+  },
+  "reference_last": false,
+  "phase_convention": "cos(2\u03c0ft+\u03c6); positive relative phase leads reference",
+  "method": "Fixed-reference pyramidal LK with forward/backward, texture, correlation and brightness gates; accepted-sample harmonic least squares",
+  "fit_edge_excluded_s": 0.0125,
+  "warnings": [
+    "Local estimates use overlapping 31 analysis-pixel tracking windows on original frames; this is a sampled field, not independent per-pixel displacement.",
+    "A dark or rejected patch does not establish a node: missing texture, occlusion and camera projection can hide motion.",
+    "The animation is a fitted single-frequency operating deflection pattern, not an identified structural eigenmode. Offset, drift and other frequencies are omitted.",
+    "Warping uses bilinear interpolation only inside cells with four accepted, measurable neighboring fits. Arrows show the actual sample locations."
+  ],
+  "interpolated_support_fraction": 0.13587843283728793
+}

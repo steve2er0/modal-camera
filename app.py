@@ -1,0 +1,292 @@
+"""Loopback-only Flask prototype. No CDN, telemetry, cloud or hardware calls."""
+from pathlib import Path
+from dataclasses import replace
+from tempfile import TemporaryDirectory
+from threading import RLock
+import argparse
+import csv
+import io
+import json
+import math
+import secrets
+
+import cv2
+from flask import Flask, jsonify, render_template, request, Response, send_file
+import numpy as np
+from werkzeug.exceptions import HTTPException
+from modal_camera.processing import decode_video, magnify, track_points, analyze_tracks
+from modal_camera.synthetic import write_demos
+from modal_camera.response import measure_field, modal_frame
+
+ROOT = Path(__file__).resolve().parent
+app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+state = {}
+lock = RLock()
+ALLOWED_EXTENSIONS = {'.mp4','.m4v','.mov','.avi','.mkv','.webm'}
+
+
+def numeric(value, name):
+    try:
+        v = float(value)
+    except (TypeError,ValueError):
+        raise ValueError(f'{name} must be a finite number.')
+    if not math.isfinite(v):
+        raise ValueError(f'{name} must be a finite number.')
+    return v
+
+
+def current(clip_id):
+    if state.get('id') != clip_id:
+        raise ValueError('Clip is no longer loaded. Load a video and try again.')
+    return state['video']
+
+
+@app.before_request
+def local_only():
+    host = request.host.split(':')[0]
+    if host not in ('127.0.0.1','localhost'):
+        return jsonify(error='Use the loopback address 127.0.0.1.'),403
+    if request.method == 'POST':
+        origin = request.headers.get('Origin')
+        if origin and origin not in ('http://'+request.host,):
+            return jsonify(error='Cross-origin requests are disabled.'),403
+
+
+@app.errorhandler(Exception)
+def error(exc):
+    if isinstance(exc,(ValueError,TypeError,KeyError)):
+        return jsonify(error=str(exc)),400
+    if isinstance(exc,HTTPException):
+        if exc.code == 413:
+            limit = app.config['MAX_CONTENT_LENGTH'] // (1024 * 1024)
+            return jsonify(error=f'Upload exceeds the {limit} MiB request limit. Choose a smaller file.'),413
+        return jsonify(error=exc.description),exc.code
+    app.logger.exception('Local processing failed')
+    return jsonify(error='Processing failed. See the local terminal for details; try a shorter constant-frame-rate clip.'),500
+
+
+@app.after_request
+def headers(response):
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' blob: data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"
+    return response
+
+
+@app.get('/')
+def index():
+    return render_template('index.html',upload_limit_mib=app.config['MAX_CONTENT_LENGTH'] // (1024 * 1024))
+
+
+def install_clip(video, demo=False):
+    # Only one clip kept in RAM; replacement invalidates render and tracking state.
+    state.clear()
+    state.update(id=secrets.token_hex(8),video=video,render=None,traces=None,analysis=None,field=None)
+    return jsonify(id=state['id'],metadata=video.metadata,default_points=[[90,94],[230,94]] if demo else [],default_band=[2.5,3.5] if demo else [max(2*video.fps/len(video.frames),.5),min(6.,video.fps/2-.1)])
+
+
+@app.post('/api/load')
+def load():
+    upload = request.files.get('video')
+    if upload is None or not upload.filename:
+        raise ValueError('Select a video file.')
+    extension = Path(upload.filename).suffix.lower()
+    if extension not in ALLOWED_EXTENSIONS:
+        raise ValueError('Unsupported file type. Use MP4, MOV, AVI, MKV, M4V or WebM with a supported decoder codec.')
+    with lock, TemporaryDirectory(prefix='modal-camera-') as temp:
+        path = Path(temp)/('input'+extension)
+        upload.save(path)
+        video = decode_video(path,Path(upload.filename).name)
+        return install_clip(video)
+
+
+@app.post('/api/demo')
+def demo():
+    kind = (request.get_json(silent=True) or {}).get('kind','clean')
+    if kind not in ('clean','dropout'):
+        raise ValueError('Unknown demo.')
+    with lock:
+        demos = ROOT/'demo_videos'
+        if not (demos/'known_motion.avi').exists():
+            write_demos(demos)
+        name = 'known_motion' if kind=='clean' else 'tracking_dropout'
+        return install_clip(decode_video(demos/(name+'.avi')),True)
+
+
+@app.post('/api/analyze')
+def analyze():
+    data = request.get_json()
+    with lock:
+        video = current(data.get('id'))
+        points = data.get('points')
+        axis = data.get('axis','y')
+        f = data.get('frequency')
+        f = numeric(f,'Frequency') if f is not None else None
+        if state.get('point_coordinates') != points:
+            traces = track_points(video,points)
+            state.update(traces=traces,point_coordinates=points)
+        result = analyze_tracks(video,state['traces'],axis,f,reference_last=bool(data.get('reference_last',False)))
+        state['analysis'] = result
+        return jsonify(result)
+
+
+@app.post('/api/render')
+def render():
+    data = request.get_json()
+    with lock:
+        video = current(data.get('id'))
+        low,high,gain = [numeric(data.get(k),k) for k in ('low','high','gain')]
+        roi = data.get('roi')
+        if roi is not None and (not isinstance(roi,list) or len(roi)!=4 or not all(isinstance(x,(int,float)) and math.isfinite(x) for x in roi)):
+            raise ValueError('ROI must be four finite coordinates.')
+        rendered, info, response = magnify(video,low,high,gain,roi,return_response=True)
+        reference = info['response']['display_reference_rms']
+        response_display = np.clip(response / max(reference,1e-6)*255,0,255).astype(np.uint8)
+        state.update(render=rendered,render_key=secrets.token_hex(8),render_info=info,response_display=response_display)
+        return jsonify(key=state['render_key'],**info)
+
+
+@app.get('/api/response/<clip_id>')
+def response_image(clip_id):
+    with lock:
+        current(clip_id)
+        if state.get('render') is None or request.args.get('key') != state.get('render_key'):
+            raise ValueError('Response map is not current. Apply the selected band first.')
+        ok, encoded = cv2.imencode('.png',state['response_display'])
+        if not ok:
+            raise ValueError('Response map encoder failed.')
+        return Response(encoded.tobytes(),mimetype='image/png')
+
+
+@app.post('/api/field')
+def spatial_field():
+    data = request.get_json()
+    with lock:
+        video = current(data.get('id'))
+        result, cache, maps = measure_field(video,numeric(data.get('frequency'),'Frequency'),
+                                           axis=data.get('axis','y'),roi=data.get('roi'),points=data.get('points'),
+                                           reference=data.get('reference','auto'),reference_last=bool(data.get('reference_last',False)),
+                                           cached=state.get('field_cache'))
+        state.update(field=result,field_cache=cache,field_maps=maps,field_key=secrets.token_hex(8))
+        return jsonify(key=state['field_key'],**result)
+
+
+@app.post('/api/timebase')
+def timebase():
+    data = request.get_json()
+    with lock:
+        video = current(data.get('id'))
+        encoded = video.encoded_fps or video.fps
+        override = data.get('capture_fps')
+        fps = numeric(override,'Capture fps') if override is not None else encoded
+        if not 1 <= fps <= 2000:
+            raise ValueError('Capture frame rate must be 1–2000 fps.')
+        if override is not None and data.get('one_frame_per_sample') is not True:
+            raise ValueError('Confirm one encoded frame per captured sample before using a capture-rate override.')
+        basis = 'user-assumed capture time: one frame per captured sample' if override is not None else 'encoded video time'
+        state['video'] = replace(video,fps=fps,encoded_fps=encoded,timing_basis=basis)
+        state.update(render=None,render_key=None,analysis=None,render_info=None,response_display=None,field=None,field_key=None,field_maps=None)
+        return jsonify(id=state['id'],metadata=state['video'].metadata)
+
+
+@app.get('/api/frame/<clip_id>/<int:frame>')
+def frame(clip_id,frame):
+    with lock:
+        video = current(clip_id)
+        if frame >= len(video.frames):
+            raise ValueError('Frame outside the clip.')
+        view = request.args.get('view','original')
+        if view == 'amplified':
+            if state.get('render') is None or request.args.get('key') != state.get('render_key'):
+                raise ValueError('Amplification is not current. Apply the selected band first.')
+            rgb = state['render'][frame]
+        elif view=='original':
+            rgb = video.frames[frame]
+        elif view=='modal':
+            if state.get('field') is None or request.args.get('key') != state.get('field_key'):
+                raise ValueError('Spatial response is not current. Build the displacement map first.')
+            rgb = modal_frame(video,state['field'],state['field_maps'],
+                              numeric(request.args.get('phase',0),'Phase'),numeric(request.args.get('gain',10),'Modal gain'),
+                              numeric(request.args.get('threshold',0),'Response threshold'))
+        else:
+            raise ValueError('Unknown frame view.')
+        ok,encoded = cv2.imencode('.jpg',cv2.cvtColor(rgb,cv2.COLOR_RGB2BGR),[cv2.IMWRITE_JPEG_QUALITY,92])
+        if not ok:
+            raise ValueError('Frame encoder failed.')
+        return Response(encoded.tobytes(),mimetype='image/jpeg')
+
+
+@app.get('/api/export/<clip_id>')
+def export(clip_id):
+    with lock:
+        video = current(clip_id)
+        analysis = state.get('analysis')
+        if analysis is None and state.get('field') is None:
+            raise ValueError('Analyze points or build the displacement map before exporting.')
+        sensitivity = numeric(request.args.get('sensitivity',85),'Sensitivity')
+        modal_gain = numeric(request.args.get('modal_gain',10),'Modal gain')
+        if not 0 <= sensitivity <= 100 or not 0 <= modal_gain <= 20:
+            raise ValueError('Sensitivity must be 0–100 and modal gain 0–20.')
+        output = dict(video=video.metadata,measurement=analysis,magnification=state.get('render_info'),
+                      spatial_response=state.get('field'),display=dict(sensitivity=sensitivity,modal_gain=modal_gain,
+                      view=request.args.get('view','amplified'),calibration_mm_per_source_px=request.args.get('calibration') or None),
+                      method='Original-frame fixed-reference pyramidal LK; magnification linear Eulerian Laplacian luminance',
+                      caveat='Frequency is video-time Hz; verify original capture/playback speed. This is not an identified mode.')
+        return Response(json.dumps(output,indent=2),mimetype='application/json',headers={'Content-Disposition':'attachment; filename=modal-camera-analysis.json'})
+
+
+@app.get('/api/field-csv/<clip_id>')
+def field_csv(clip_id):
+    with lock:
+        current(clip_id)
+        result = state.get('field')
+        if result is None:
+            raise ValueError('Build the displacement map before exporting spatial samples.')
+        stream = io.StringIO()
+        writer = csv.writer(stream)
+        writer.writerow(['grid_point','x_analysis_px','y_analysis_px','axis','frequency_analysis_hz','amplitude_peak_source_px',
+                         'relative_phase_deg','accepted_frame_fraction','x_cos_source_px','x_sin_source_px','y_cos_source_px','y_sin_source_px',
+                         'fit_residual_source_px','harmonic_power_fraction','phase_reference','timing_basis'])
+        for node in result['nodes']:
+            xfit, yfit, chosen = node['fit']['x'],node['fit']['y'],node['fit'][result['axis']]
+            writer.writerow([node['index']+1,node['x'],node['y'],result['axis'],result['frequency_hz'],node['amplitude_peak_px'],
+                             node['relative_phase_deg'],node['valid_fraction'],*(xfit['coefficients_px'] if xfit else [None,None]),
+                             *(yfit['coefficients_px'] if yfit else [None,None]),chosen['rms_residual_px'] if chosen else None,
+                             chosen['harmonic_power_fraction'] if chosen else None,result['reference']['label'],result['timing_basis']])
+        return Response(stream.getvalue(),mimetype='text/csv',headers={'Content-Disposition':'attachment; filename=modal-camera-spatial-response.csv'})
+
+
+@app.get('/api/csv/<clip_id>')
+def export_csv(clip_id):
+    with lock:
+        video = current(clip_id)
+        result = state.get('analysis')
+        if result is None:
+            raise ValueError('Analyze points before exporting.')
+        stream = io.StringIO()
+        writer = csv.writer(stream)
+        columns = ['analysis_time_s']
+        for p in result['points']:
+            columns += [f"P{p['point']}_dx_source_px",f"P{p['point']}_dy_source_px",f"P{p['point']}_accepted",f"P{p['point']}_fb_error_analysis_px",f"P{p['point']}_ncc"]
+        writer.writerow(columns)
+        for i,t in enumerate(result['time']):
+            row = [t]
+            for p in result['points']:
+                row += [p['dx'][i],p['dy'][i],p['valid'][i],p['quality']['fb_error_px'][i],p['quality']['ncc'][i]]
+            writer.writerow(row)
+        return Response(stream.getvalue(),mimetype='text/csv',headers={'Content-Disposition':'attachment; filename=modal-camera-traces.csv'})
+
+
+if __name__=='__main__':
+    parser = argparse.ArgumentParser(description='Offline Modal Camera prototype; local recorded video only.')
+    parser.add_argument('--port',type=int,default=8765)
+    parser.add_argument('--make-demos',action='store_true')
+    args = parser.parse_args()
+    if args.make_demos:
+        write_demos(ROOT/'demo_videos')
+        print('Created lossless deterministic demo videos.')
+    else:
+        print(f'Open http://127.0.0.1:{args.port} (videos remain local; Ctrl+C stops).')
+        app.run(host='127.0.0.1',port=args.port,debug=False,threaded=True)

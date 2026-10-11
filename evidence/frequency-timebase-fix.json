@@ -1,0 +1,20 @@
+{
+  "reason": "Guitar displayed encoded-playback frequencies rather than capture-time frequencies",
+  "encoded_fps": 29.97002997002997,
+  "assumed_capture_fps": 600,
+  "nyquist_hz": 300,
+  "band_hz": [
+    72,
+    92
+  ],
+  "frame_timing_assumption": "one encoded frame per captured sample; not independently verified",
+  "verification": "Existing user IAB tab: timebase summary, Nyquist, rendered band and previous replay speed/frame checked through CUA",
+  "code_changes": [
+    "clear sample-rate/range summary",
+    "explicit assumption checkbox wording",
+    "guitar source band guidance",
+    "clear stale fit label",
+    "template auto reload and script cache version"
+  ],
+  "source": "https://people.csail.mit.edu/mrub/papers/vidmag.pdf#page=6"
+}

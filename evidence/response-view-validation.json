@@ -1,0 +1,37 @@
+{
+  "scope": "Local macOS Python/OpenCV + Chrome browser; original recorded/synthetic frames only",
+  "tests": {
+    "command": ".venv/bin/python -m pytest -q",
+    "passed": 41,
+    "javascript_syntax": [
+      "static/app.js",
+      "static/response.js"
+    ]
+  },
+  "browser_checks": [
+    "Known-motion demo original point results retained (0.3977/0.5989 source px, 60.2 degree phase)",
+    "Frequency heatmap and isolated view rendered; heatmap scale unchanged at zero magnification gain",
+    "Sensitivity slider includes weaker signals and changes isolated display",
+    "Amplitude and cyclic relative-phase grid views render with rejected patches marked",
+    "Sample inspection shows source-pixel amplitude, relative phase, acceptance and fit residual",
+    "Fitted harmonic animation advances a cycle independently of capture fps",
+    "Changing fit frequency clears the spatial view until rebuilt",
+    "Actual plate imported through native file picker and its assumed 240 fps timing restored",
+    "No captured browser JavaScript errors in tested views"
+  ],
+  "exports": {
+    "analysis": "plate-95hz-response-analysis.json",
+    "spatial_csv": "plate-95hz-spatial-response.csv",
+    "verified": "Retrieved from live application API; browser automated download was canceled"
+  },
+  "plate": {
+    "frequency_hz": 95.0,
+    "accepted_amplitude_fits": 59,
+    "phase_samples": 29,
+    "grid_samples": 72,
+    "interpolated_image_support_fraction": 0.13587843283728793,
+    "timing_basis": "user-assumed capture time: one frame per captured sample",
+    "physical_frequency_independently_validated": false
+  },
+  "limits": "Sampled camera-plane operating deflection pattern, not identified eigenmode or dense per-pixel displacement; heatmap measures luminance variation. Unsupported cells are not warped."
+}

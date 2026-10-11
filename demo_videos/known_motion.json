@@ -1,0 +1,39 @@
+{
+  "seed": 20261005,
+  "fps": 60.0,
+  "seconds": 6.0,
+  "frequencies_hz": [
+    3,
+    7
+  ],
+  "points": [
+    [
+      90,
+      94
+    ],
+    [
+      230,
+      94
+    ]
+  ],
+  "amplitude_3hz_y_px": [
+    0.4,
+    0.6
+  ],
+  "amplitude_7hz_y_px": [
+    0.12,
+    0.1
+  ],
+  "amplitude_3hz_x_px": [
+    0.18,
+    0.28
+  ],
+  "relative_phase_3hz_deg": 60,
+  "low_texture_point": [
+    160,
+    170
+  ],
+  "dropout_interval_s": null,
+  "signal": "dy=A3*cos(2\u03c0*3*t+\u03c6)+A7*cos(2\u03c0*7*t-0.3); \u03c6=[0,\u03c0/3]",
+  "codec": "FFV1 lossless; uint8 rasterization"
+}

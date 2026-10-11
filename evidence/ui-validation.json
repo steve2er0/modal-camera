@@ -1,0 +1,61 @@
+{
+  "browser": "Playwright Chromium headless; CUA transport unavailable",
+  "checks": [
+    {
+      "name": "Known demo loads, tracks and renders",
+      "passed": true,
+      "details": {
+        "table": "P1 (90, 94)\t0.3977 px\t0.0°\t100.0%\tGood texture / registration. Fit residual 0.0848 px.\nP2 (230, 94)\t0.5989 px\t60.2°\t100.0%\tGood texture / registration. Fit residual 0.0714 px."
+      }
+    },
+    {
+      "name": "Draggable band updates filtered frames and independent 7 Hz fit",
+      "passed": true
+    },
+    {
+      "name": "Invalid gain is rejected and valid retry recovers",
+      "passed": true
+    },
+    {
+      "name": "ROI selection and full-frame reset render successfully",
+      "passed": true
+    },
+    {
+      "name": "Shared replay clock and frame scrubbing",
+      "passed": true
+    },
+    {
+      "name": "Dropout warning and withheld fit visible",
+      "passed": true
+    },
+    {
+      "name": "Low-texture point produces warning and gaps",
+      "passed": true
+    },
+    {
+      "name": "Malformed file is rejected in UI",
+      "passed": true
+    },
+    {
+      "name": "Guitar import, explicit assumed 600 fps timebase and band render",
+      "passed": true,
+      "details": {
+        "table": "P1 (200, 57)\t0.0174 px\t0.0°\t100.0%\tGood texture / registration. Fit residual 0.0179 px.\nP2 (220, 91)\t0.0001 px\tUnavailable\t100.0%\tRelative phase unavailable: P1 or this point has insufficient motion signal.\nP3 (240, 132)\t0.0004 px\tUnavailable\t100.0%\tRelative phase unavailable: P1 or this point has insufficient motion signal.",
+        "physical_frequency_validated": false
+      }
+    },
+    {
+      "name": "Repeated same-file imports reset timebase, selections, fits and render",
+      "passed": true
+    },
+    {
+      "name": "Local JSON download",
+      "passed": true
+    },
+    {
+      "name": "No browser JavaScript errors",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.DS_Store
+*.log
+*.pyc
+local_videos/
+data/examples/
+*.mp4
+*.mov
+*.mkv
+*.webm
+# Demo AVI files are intentionally supplied; do not add user videos to source.

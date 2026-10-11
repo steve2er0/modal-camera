@@ -1,0 +1,196 @@
+{
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "numpy": "2.0.2",
+  "scipy": "1.13.1",
+  "opencv": "4.11.0",
+  "demo_metadata": {
+    "name": "known_motion.avi",
+    "fps": 60.0,
+    "encoded_fps": 60.0,
+    "timing_basis": "encoded video time",
+    "frames": 360,
+    "width": 320,
+    "height": 200,
+    "source_width": 320,
+    "source_height": 200,
+    "scale_x": 1.0,
+    "scale_y": 1.0,
+    "duration": 6.0,
+    "nyquist": 30.0,
+    "resolution_hz": 0.16666666666666666,
+    "warnings": [
+      "Frame rate does not prove absence of aliasing; motion above Nyquist cannot be recovered.",
+      "Camera motion, lighting flicker, rolling shutter and changing texture can contaminate results.",
+      "Frequencies use encoded video time. Slow motion, archival transfers and interpolated frames may differ from physical time; original capture timing is not inferred."
+    ]
+  },
+  "expected": {
+    "frequency_hz": 3,
+    "amplitude_y_px": [
+      0.4,
+      0.6
+    ],
+    "relative_phase_deg": 60
+  },
+  "measured_peak_hz": 3.0,
+  "fits": {
+    "3": [
+      {
+        "point": 1,
+        "valid_fraction": 1.0,
+        "amplitude_peak_px": 0.3976843164043233,
+        "phase_deg": 0.013467679031558329,
+        "relative_phase_deg": 0.0,
+        "rms_residual_px": 0.08482390651669548,
+        "accepted_fit_fraction": 1.0,
+        "samples": 320
+      },
+      {
+        "point": 2,
+        "valid_fraction": 1.0,
+        "amplitude_peak_px": 0.598912134575183,
+        "phase_deg": 60.16501265855374,
+        "relative_phase_deg": 60.151544979522185,
+        "rms_residual_px": 0.07136707627014285,
+        "accepted_fit_fraction": 1.0,
+        "samples": 320
+      }
+    ],
+    "7": [
+      {
+        "point": 1,
+        "valid_fraction": 1.0,
+        "amplitude_peak_px": 0.12278488287880922,
+        "phase_deg": -16.391105139092147,
+        "relative_phase_deg": 0.0,
+        "rms_residual_px": 0.28323415494320103,
+        "accepted_fit_fraction": 1.0,
+        "samples": 342
+      },
+      {
+        "point": 2,
+        "valid_fraction": 1.0,
+        "amplitude_peak_px": 0.10089936234180293,
+        "phase_deg": -14.110723253870482,
+        "relative_phase_deg": 2.280381885221658,
+        "rms_residual_px": 0.4234293582112076,
+        "accepted_fit_fraction": 1.0,
+        "samples": 342
+      }
+    ]
+  },
+  "dropout": [
+    {
+      "point": 1,
+      "valid_fraction": 1.0,
+      "fit_withheld": false,
+      "warnings": []
+    },
+    {
+      "point": 2,
+      "valid_fraction": 0.8,
+      "fit_withheld": true,
+      "warnings": [
+        "Tracking quality dropped in 72/360 frames. Rejected samples are gaps; fits never interpolate them.",
+        "Amplitude/phase withheld: insufficient accepted data or fewer than three cycles after edge exclusion."
+      ]
+    }
+  ],
+  "low_texture": {
+    "valid_fraction": 0.0,
+    "fit": null,
+    "warnings": [
+      "Low texture / aperture ambiguity at the reference point. Select a textured corner.",
+      "Tracking quality dropped in 360/360 frames. Rejected samples are gaps; fits never interpolate them.",
+      "Amplitude/phase withheld: insufficient accepted data or fewer than three cycles after edge exclusion."
+    ]
+  },
+  "render_response": {
+    "added_gain": 1,
+    "expected_peak_px": 0.8,
+    "measured_peak_px": 0.7801159037712282,
+    "settings": {
+      "low": 2.5,
+      "high": 3.5,
+      "gain": 1,
+      "roi": null,
+      "clipping_fraction": 0.0027378472222222222,
+      "edge_guard_frames": 24,
+      "warnings": [
+        "Linear Eulerian luminance magnification; \u03b1=1 is added gain. Ideal small-motion factor \u22481+\u03b1, spatial-scale dependent.",
+        "Temporal edge caution: first/last 0.40 s. Offline, zero-phase filter; one-bin cosine shoulders.",
+        "Magnified frames are visualization only. Large amplified displacement creates halos/ghosting; lighting variations are also amplified.",
+        "0.27% of luminance samples clipped. Lower gain or narrow the band."
+      ]
+    }
+  },
+  "guitar_smoke": {
+    "url": "https://people.csail.mit.edu/mrub/evm/video/guitar.mp4",
+    "paper": "https://people.csail.mit.edu/mrub/papers/vidmag.pdf#page=6",
+    "bytes": 1198956,
+    "sha256": "05ec305c9224c9374114642d29e7519e77e282147a25dce1e502426331d153a4",
+    "encoded": {
+      "name": "guitar.mp4",
+      "fps": 29.97002997002997,
+      "encoded_fps": 29.97002997002997,
+      "timing_basis": "encoded video time",
+      "frames": 300,
+      "width": 424,
+      "height": 188,
+      "source_width": 432,
+      "source_height": 192,
+      "scale_x": 1.0188679245283019,
+      "scale_y": 1.0212765957446808,
+      "duration": 10.01,
+      "nyquist": 14.985014985014985,
+      "resolution_hz": 0.0999000999000999,
+      "warnings": [
+        "Frame rate does not prove absence of aliasing; motion above Nyquist cannot be recovered.",
+        "Camera motion, lighting flicker, rolling shutter and changing texture can contaminate results.",
+        "Analysis resized to 424\u00d7188. Reported displacement is rescaled to source pixels; subpixel detail is reduced.",
+        "Frequencies use encoded video time. Slow motion, archival transfers and interpolated frames may differ from physical time; original capture timing is not inferred."
+      ]
+    },
+    "paper_capture_fps": 600,
+    "paper_bands_hz": [
+      [
+        72,
+        92
+      ],
+      [
+        100,
+        120
+      ]
+    ],
+    "timing_assumption": "600 fps applies only if every encoded frame corresponds to one captured sample; mapping not independently verified",
+    "decode_passed": true,
+    "render_smoke_test": {
+      "low": 72,
+      "high": 92,
+      "gain": 2,
+      "roi": null,
+      "clipping_fraction": 0.01575174795932022,
+      "edge_guard_frames": 9,
+      "warnings": [
+        "Linear Eulerian luminance magnification; \u03b1=2 is added gain. Ideal small-motion factor \u22481+\u03b1, spatial-scale dependent.",
+        "Temporal edge caution: first/last 0.01 s. Offline, zero-phase filter; one-bin cosine shoulders.",
+        "Magnified frames are visualization only. Large amplified displacement creates halos/ghosting; lighting variations are also amplified.",
+        "1.58% of luminance samples clipped. Lower gain or narrow the band."
+      ]
+    },
+    "quantitative_physical_frequency_validated": false,
+    "tracking_valid_fraction": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "fit_withheld": [
+      false,
+      false,
+      false
+    ],
+    "measured_bin_assumed_hz": 4.0
+  },
+  "elapsed_s": 3.1060314169999996
+}

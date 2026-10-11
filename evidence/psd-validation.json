@@ -1,0 +1,109 @@
+{
+  "date_local": "2026-10-04",
+  "timezone": "America/New_York",
+  "automated_tests": "28 passed in 10.61s",
+  "js_syntax": "node --check static/app.js passed",
+  "browser": "Codex in-app browser via CUA",
+  "browser_js_errors": [],
+  "ui_checks": [
+    "Selected two original-image guitar points and analyzed displacement",
+    "PSD and peak-amplitude spectral views switch successfully",
+    "Linear and logarithmic PSD axes switch successfully",
+    "0.1 mm/source-pixel calibration displayed mm\u00b2/Hz and RMS multiplied by 0.1; restored blank",
+    "Clickable 80 Hz bin sets fit frequency; restored 82 Hz",
+    "Dragging low band edge changed 72 Hz to 60.204 Hz; restored 72 Hz",
+    "72\u201392 Hz, added gain 4 rendered while original PSD remained available"
+  ],
+  "export_evidence": "Direct read-only loopback API export saved; native browser download-event observation timed out",
+  "video": {
+    "name": "guitar.mp4",
+    "fps": 600.0,
+    "encoded_fps": 29.97002997002997,
+    "timing_basis": "user-assumed capture time: one frame per captured sample",
+    "frames": 300,
+    "width": 424,
+    "height": 188,
+    "source_width": 432,
+    "source_height": 192,
+    "scale_x": 1.0188679245283019,
+    "scale_y": 1.0212765957446808,
+    "duration": 0.5,
+    "nyquist": 300.0,
+    "resolution_hz": 2.0,
+    "warnings": [
+      "Frame rate does not prove absence of aliasing; motion above Nyquist cannot be recovered.",
+      "Camera motion, lighting flicker, rolling shutter and changing texture can contaminate results.",
+      "Analysis resized to 424\u00d7188. Reported displacement is rescaled to source pixels; subpixel detail is reduced.",
+      "Frequencies use encoded video time. Slow motion, archival transfers and interpolated frames may differ from physical time; original capture timing is not inferred."
+    ]
+  },
+  "psd_metadata": {
+    "method": "One-sided full-record Hann periodogram",
+    "window": "periodic Hann",
+    "detrend": "linear",
+    "units": "source pixels squared per Hz",
+    "bin_width_hz": 2.0,
+    "enbw_hz": 3.0,
+    "duration_s": 0.5,
+    "segments": 1,
+    "zero_padding": false,
+    "timing_basis": "user-assumed capture time: one frame per captured sample",
+    "accepted_trace_count": 2,
+    "total_trace_count": 2,
+    "gap_policy": "Any rejected sample withholds that trace spectrum; no interpolation"
+  },
+  "points": [
+    {
+      "point": 1,
+      "analysis_location": [
+        180.0,
+        50.0
+      ],
+      "accepted_fraction": 1.0,
+      "rms_source_px": 0.011719661438172334,
+      "peaks": [
+        {
+          "frequency_hz": 80.0,
+          "density_px2_per_hz": 1.4594945245029032e-05
+        },
+        {
+          "frequency_hz": 10.0,
+          "density_px2_per_hz": 2.615880187690124e-06
+        },
+        {
+          "frequency_hz": 22.0,
+          "density_px2_per_hz": 2.505924533041711e-06
+        }
+      ]
+    },
+    {
+      "point": 2,
+      "analysis_location": [
+        150.0,
+        52.0
+      ],
+      "accepted_fraction": 1.0,
+      "rms_source_px": 0.009229791193915725,
+      "peaks": [
+        {
+          "frequency_hz": 82.0,
+          "density_px2_per_hz": 6.947448643283638e-06
+        },
+        {
+          "frequency_hz": 18.0,
+          "density_px2_per_hz": 1.962217362062894e-06
+        },
+        {
+          "frequency_hz": 6.0,
+          "density_px2_per_hz": 1.9481009258297686e-06
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "600 fps analysis time is assumed; encoded frame mapping is not independently verified",
+    "Guitar patches combine string/body texture; tracker acceptance is not a calibrated uncertainty bound",
+    "Full-record Hann periodogram has no averaging; 2 Hz bins, 3 Hz ENBW",
+    "Relative phase is withheld for these weak point fits"
+  ]
+}
