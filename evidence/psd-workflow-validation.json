@@ -1,0 +1,55 @@
+{
+  "tests": "87 passed; spectrum-specific checks repeated after peak metadata cleanup",
+  "browser": "Codex in-app browser, http://127.0.0.1:8766/",
+  "source": "95Hz_AlPlate_wGrid_frame_order_30fps.avi",
+  "timebase": "user-assumed capture time: one frame per captured sample",
+  "analysis_fps": 240.0,
+  "source_kind": "spatial_grid",
+  "accepted_tracks": 57,
+  "total_tracks": 72,
+  "resolution_hz": 0.5128205128205128,
+  "psd_peaks": [
+    {
+      "density_px2_per_hz": 0.321479156217624,
+      "frequency_hz": 1.0256410256410258
+    },
+    {
+      "density_px2_per_hz": 0.0733274048514232,
+      "frequency_hz": 94.87179487179489
+    },
+    {
+      "density_px2_per_hz": 0.027597928470561976,
+      "frequency_hz": 2.5641025641025643
+    },
+    {
+      "density_px2_per_hz": 0.013697286702915687,
+      "frequency_hz": 4.615384615384616
+    },
+    {
+      "density_px2_per_hz": 0.006697053119627426,
+      "frequency_hz": 6.153846153846155
+    },
+    {
+      "density_px2_per_hz": 0.005476148878629432,
+      "frequency_hz": 10.76923076923077
+    }
+  ],
+  "target_hz": 95.0,
+  "band_hz": [
+    93.0,
+    97.0
+  ],
+  "browser_checks": [
+    "Advanced stays closed; PSD appears in Choose the response",
+    "Clicking 94.87 Hz selects 94.872 Hz and centers 92.872\u201396.872 Hz band",
+    "PSD retained across target edit and subsequent response analysis",
+    "Restored 95 Hz and 93\u201397 Hz analysis, 76% sensitivity",
+    "Page reload restores PSD and response results",
+    "390 x 844 CSS viewport: document width 390, plot width 320, no horizontal overflow",
+    "Viewport reset; no browser warning/error logs"
+  ],
+  "screenshots": [
+    "ui-plate-psd-desktop.png",
+    "ui-plate-psd-mobile.png"
+  ]
+}

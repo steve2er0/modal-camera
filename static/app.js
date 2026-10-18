@@ -4,6 +4,13 @@ const colors=['#76e0c2','#80b7ee','#ffc986','#df9ef6','#fb8eaa','#bbd587','#e9b4
 let clip=null,points=[],roi=null,mode='inspect',analysis=null,analysisKey=null,renderKey=null,frame=0,playing=false,busy=false,epoch=0;
 let originalImage=null,amplifiedImage=null,frameRequest=0,fetchingFrame=false,drag=null;
 let revision=null,timingConfirmed=false,dirty=false,stopRequested=false,cursor=[32,32];
+let displacementSpectrum=null,spectrumIdentity=null;
+function currentSpectrumIdentity(){return clip?JSON.stringify([clip.id,clip.metadata.fps,clip.metadata.timing_basis,timingConfirmed,$('axis').value,points,roi,$('cameraReference').checked,$('spectrumHighpass').checked?Number($('highpassCutoff').value):0]):null;}
+async function runSpectrum(){
+  await flushSettings();
+  const result=await api('/api/spectrum',{id:clip.id,revision});
+  displacementSpectrum=result;spectrumIdentity=currentSpectrumIdentity();revision=result.revision;drawSpectrum();
+}
 const status=message=>{$('status').textContent=message;$('operationState').textContent=clip?message:'';};
 function showError(e){$('error').hidden=false;$('error').textContent=e.message||String(e);status('Please correct the highlighted setting or try again.');if(e.field){const field=$(e.field);field.setAttribute('aria-invalid','true');if(field.closest('#advanced'))$('advanced').open=true;field.focus();}}
 function clearError(){$('error').hidden=true;for(const el of document.querySelectorAll('[aria-invalid]'))el.removeAttribute('aria-invalid');}
@@ -83,24 +90,28 @@ function plotBase(canvas,xlabel,ylabel){
   const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,L=58,R=18,T=18,B=36;ctx.fillStyle='#121e29';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#304453';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,H-B);ctx.lineTo(W-R,H-B);ctx.stroke();ctx.fillStyle='#9ab0c1';ctx.font='11px sans-serif';ctx.fillText(ylabel,10,12);ctx.fillText(xlabel,W-160,H-7);return {ctx,W,H,L,R,T,B,xw:W-L-R,yh:H-T-B};
 }
 function drawSpectrum(){
+  const spectrum=displacementSpectrum;
   const psd=$('spectrumView').value==='psd';
   const calibration=Number($('calibration').value),calibrated=calibration>0&&Number.isFinite(calibration);
   const scale=calibrated?calibration:1,unit=calibrated?'mm':'source px';
   const logarithmic=psd&&$('spectrumLog').checked;
   $('spectrumLog').disabled=!psd;
-  $('spectrumUnits').textContent=`ORIGINAL ${analysis?.axis.toUpperCase()||$('axis').value.toUpperCase()} · ${psd?'PSD '+unit+'²/Hz':'PEAK '+unit}`;
-  const c=$('spectrum'),p=plotBase(c,'Analysis frequency / Hz',psd?`PSD / ${unit}²/Hz`:`Peak / ${unit}`),{ctx,W,H,L,R,T,B,xw,yh}=p;
+  const highpass=spectrum?.highpass?.enabled?spectrum.highpass.cutoff_hz:0;
+  $('spectrumUnits').textContent=`${highpass?'High-passed':'Original'} ${spectrum?.axis.toUpperCase()||$('axis').value.toUpperCase()} displacement ${psd?'PSD':'spectrum'}`;
+  const c=$('spectrum');c.width=Math.max(240,Math.round(c.clientWidth));c.height=210;
+  const p=plotBase(c,'Analysis frequency / Hz',psd?`PSD / ${unit}²/Hz`:`Peak / ${unit}`),{ctx,W,H,L,R,T,B,xw,yh}=p;
   $('spectrumLegend').replaceChildren();
+  $('spectrumDetails').replaceChildren();
   if(!clip)return;
   const maxF=clip.metadata.nyquist,toX=f=>L+f/maxF*xw,lo=Number($('low').value),hi=Number($('high').value);
   ctx.fillStyle='#76e0c21e';ctx.fillRect(toX(lo),T,toX(hi)-toX(lo),yh);
   ctx.strokeStyle='#76e0c2';ctx.lineWidth=2;
   for(const edge of [lo,hi]){ctx.beginPath();ctx.moveTo(toX(edge),T);ctx.lineTo(toX(edge),H-B);ctx.stroke();ctx.fillRect(toX(edge)-4,T+8,8,19);}
-  ctx.fillStyle='#9ab0c1';for(let i=0;i<=6;i++){const f=i*maxF/6;ctx.fillText(f.toFixed(1),toX(f)-8,H-B+17);}
-  if(analysis?.spectrum_available){
+  ctx.fillStyle='#9ab0c1';for(let i=0;i<=6;i++){const f=i*maxF/6;const label=f.toFixed(1);ctx.fillText(label,Math.min(W-ctx.measureText(label).width-4,toX(f)-8),H-B+17);}
+  if(spectrum?.spectrum_available){
     const key=psd?'psd_px2_per_hz':'spectrum_px';
     const factor=psd?scale*scale:scale;
-    const all=analysis.points.flatMap(point=>(point[key]||[]).slice(1).map(v=>v*factor));
+    const all=spectrum.points.flatMap(point=>(point[key]||[]).slice(1).map(v=>v*factor));
     const maxValue=Math.max(1e-20,...all);
     const upper=logarithmic?Math.ceil(Math.log10(maxValue)):Math.max(psd?1e-20:.02,maxValue)*1.2;
     // Six displayed decades; the floor is only for plotting zeros, not a noise estimate.
@@ -111,32 +122,36 @@ function drawSpectrum(){
       ctx.fillStyle='#9ab0c1';ctx.fillText(logarithmic?`1e${Math.round(tick)}`:psd?tick.toExponential(1):tick.toFixed(2),7,y+3);
       ctx.strokeStyle='#243746';ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(W-R,y);ctx.stroke();
     }
-    analysis.points.forEach((point,j)=>{
+    spectrum.points.forEach((point,j)=>{
       if(point[key]){
         ctx.strokeStyle=colors[j];ctx.lineWidth=1.7;ctx.beginPath();
-        point[key].forEach((value,i)=>{if(i===0)return;const x=toX(analysis.frequencies[i]),y=toY(value*factor);i===1?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+        point[key].forEach((value,i)=>{if(i===0)return;const x=toX(spectrum.frequencies[i]),y=toY(value*factor);i===1?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
       }
       const entry=document.createElement('div');entry.className='spectrum-entry';entry.style.color=colors[j];
-      const title=document.createElement('strong');title.textContent=`P${point.point} · ${point[key]?'original '+analysis.axis.toUpperCase():'spectrum withheld'}`;entry.append(title);
+      const title=document.createElement('strong');title.textContent=`${point.label} · ${point[key]?(highpass?'high-passed ':'original ')+spectrum.axis.toUpperCase():'spectrum withheld'}`;entry.append(title);
       if(psd&&point[key]){
-        const detail=document.createElement('div');detail.className='spectrum-detail';detail.textContent=`Integrated PSD RMS ${(point.rms_from_psd_px*scale).toPrecision(3)} ${unit}. Strongest local bins:`;entry.append(detail);
-        point.psd_peaks.forEach(peak=>{const button=document.createElement('button');button.type='button';button.textContent=peak.frequency_hz.toFixed(2)+' Hz';button.title='Set the harmonic fit frequency; this does not identify a structural mode';button.onclick=()=>{$('frequency').value=peak.frequency_hz.toFixed(3);targetChanged();};entry.append(button);});
+        const detail=document.createElement('div');detail.className='spectrum-detail';detail.textContent=`${highpass?'Filtered':'Integrated'} PSD RMS ${(point.rms_from_psd_px*scale).toPrecision(3)} ${unit}.`;entry.append(detail);
       }else if(!point[key]){const detail=document.createElement('div');detail.className='spectrum-detail';detail.textContent='Rejected samples are not filled.';entry.append(detail);}
-      $('spectrumLegend').append(entry);
+      $('spectrumDetails').append(entry);
     });
-    const peak=psd?analysis.psd_peak_frequency_hz:analysis.peak_frequency_hz;
-    ctx.fillStyle='#d9e7ee';ctx.fillText(peak===null?'No nonzero spectral energy':`Strongest mean bin ${peak.toFixed(2)} Hz · Δf ${analysis.resolution_hz.toFixed(3)} Hz`,L+8,T+16);
-    const m=analysis.psd_metadata;
-    $('spectralHelp').textContent=psd?`One-sided Hann periodogram · linear detrend · ${m.duration_s.toFixed(3)} s record · Δf ${m.bin_width_hz.toFixed(3)} Hz · Hann ENBW ${m.enbw_hz.toFixed(3)} Hz · ${m.accepted_trace_count}/${m.total_trace_count} complete traces. No averaging or gap filling. PSD is from original displacement; ${m.timing_basis}.`:'Detrended, Hann-windowed peak-amplitude spectrum of original displacement; source pixels unless calibrated. No gap filling.';
+    const m=spectrum.psd_metadata,peak=psd?spectrum.psd_peak_frequency_hz:spectrum.peak_frequency_hz;
+    $('spectrumSummary').textContent=`${spectrum.source==='spatial_grid'?'Spatial mean':'Selected points'} · ${m.accepted_trace_count}/${m.total_trace_count} tracks · Δf ${m.bin_width_hz.toFixed(3)} Hz${highpass?` · HP ${highpass} Hz`:''}${peak===null?' · No nonzero spectral energy':` · peak ${peak.toFixed(2)} Hz`}.`;
+    const label=document.createElement('span');label.textContent='PSD peaks:';$('spectrumLegend').append(label);
+    for(const peak of spectrum.psd_peaks){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=peak.frequency_hz.toFixed(2)+' Hz';button.disabled=busy;button.title='Select this PSD peak as the target frequency';button.onclick=()=>{$('frequency').value=peak.frequency_hz.toFixed(3);targetChanged();};$('spectrumLegend').append(button);}
+    $('spectralHelp').textContent=`One-sided full-record Hann periodogram · linear detrend · ${m.duration_s.toFixed(3)} s record · Hann ENBW ${m.enbw_hz.toFixed(3)} Hz. Mean of individual PSDs, so opposite-phase motion does not cancel. No segment averaging, zero padding or gap filling. PSD uses original displacement, independent of target, band and magnification; ${m.timing_basis}. Camera-reference subtraction: ${spectrum.reference_last?'last selected point (excluded from mean)':'off'}. ${highpass?`High-pass ${highpass} Hz: fourth-order Butterworth in SOS form, forward-backward with odd reflection padding, after linear detrending. Zero phase; two-pass gain is −6.02 dB at the cutoff. Edge transients and attenuation near the cutoff remain; this does not establish that suppressed motion was camera jitter. Applied only to PSD and amplitude spectrum; fits, point traces and response videos retain original motion.`:'High-pass off.'} Peak bins guide selection; they do not identify structural modes.`;
   }else{
-    ctx.fillStyle='#96acbd';ctx.fillText('Select points and Analyze original points to view frequency content',L+10,T+52);
+    ctx.fillStyle='#96acbd';ctx.fillText(timingConfirmed?'Measure PSD to see peaks':'Confirm timing to see peaks',L+8,T+52);
+    const m=spectrum?.psd_metadata;
+    $('spectrumSummary').textContent=m?`PSD withheld: 0/${m.total_trace_count} complete tracks. Choose textured points or a different ROI under Advanced.`:timingConfirmed?'Measure the original motion, then click a peak or enter a frequency.':'Confirm timing to measure the frequency content.';
     $('spectralHelp').textContent='PSD uses original tracked X/Y displacement, not image brightness or magnified motion. Traces with rejected samples are withheld.';
   }
+  if(highpass){ctx.fillStyle='#ffd08916';ctx.fillRect(L,T,Math.min(xw,highpass/maxF*xw),yh);ctx.strokeStyle='#ffd08980';ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(toX(highpass),T);ctx.lineTo(toX(highpass),H-B);ctx.stroke();ctx.setLineDash([]);}
   const fit=Number($('frequency').value);ctx.strokeStyle='#ffd089';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(toX(fit),T);ctx.lineTo(toX(fit),H-B);ctx.stroke();ctx.setLineDash([]);
 }
 $('spectrumView').onchange=drawSpectrum;
 $('spectrumLog').onchange=drawSpectrum;
-function spectrumFrequency(e){const r=$('spectrum').getBoundingClientRect(),x=(e.clientX-r.left)/r.width*900;return Math.max(0,Math.min(clip.metadata.nyquist,(x-58)/(900-58-18)*clip.metadata.nyquist));}
+window.addEventListener('resize',drawSpectrum);
+function spectrumFrequency(e){const c=$('spectrum'),r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*c.width;return Math.max(0,Math.min(clip.metadata.nyquist,(x-58)/(c.width-58-18)*clip.metadata.nyquist));}
 $('spectrum').onpointerdown=e=>{if(!clip||busy)return;const f=spectrumFrequency(e),lo=Number($('low').value),hi=Number($('high').value),tol=Math.min(clip.metadata.nyquist*.018,(hi-lo)*.25);let kind=Math.abs(f-lo)<tol?'low':Math.abs(f-hi)<tol?'high':f>lo&&f<hi?'band':'fit';drag={kind,start:f,low:lo,high:hi,moved:false};$('spectrum').setPointerCapture(e.pointerId);};
 $('spectrum').onpointermove=e=>{if(!drag||drag.kind==='roi'||!clip)return;const f=spectrumFrequency(e),df=clip.metadata.resolution_hz,nyq=clip.metadata.nyquist;drag.moved=true;let lo=drag.low,hi=drag.high;if(drag.kind==='low')lo=Math.max(2*df,Math.min(hi-df,f));if(drag.kind==='high')hi=Math.max(lo+df,Math.min(nyq-.01,f));if(drag.kind==='band'){const delta=Math.max(2*df-lo,Math.min(nyq-.01-hi,f-drag.start));lo+=delta;hi+=delta;}if(drag.kind==='fit')$('frequency').value=Math.max(.01,Math.min(nyq-.01,f)).toFixed(3);else{$('low').value=lo.toFixed(3);$('high').value=hi.toFixed(3);}drawSpectrum();};
 $('spectrum').onpointerup=e=>{if(!drag||drag.kind==='roi')return;if(!drag.moved){$('frequency').value=Math.max(.01,Math.min(clip.metadata.nyquist-.01,spectrumFrequency(e))).toFixed(3);targetChanged();}else{if(drag.kind==='fit')targetChanged();else{$('linkedBand').checked=false;settingsChanged();}status('Selection changed. Analyze response to update results.');}drag=null;};

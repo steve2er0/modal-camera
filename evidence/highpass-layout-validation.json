@@ -1,0 +1,123 @@
+{
+  "plate": "95Hz_AlPlate_wGrid_frame_order_30fps.avi",
+  "analysis_fps": 240,
+  "timing_basis": "user-assumed capture time: one frame per captured sample",
+  "highpass": {
+    "cutoff_hz": 5,
+    "cutoff_two_pass_gain_db": -6.020599913279624,
+    "enabled": true,
+    "method": "Butterworth SOS, forward-backward, odd reflection padding",
+    "order_per_pass": 4,
+    "phase": "zero phase",
+    "scope": "PSD and amplitude spectrum only; response fits and videos use original motion"
+  },
+  "raw_peak_hz": 1.0256410256410258,
+  "filtered_peak_hz": 94.87179487179489,
+  "metrics": {
+    "slow_0p5_to_3_hz": {
+      "power_ratio": 0.00018358632654396736,
+      "change_db": -37.36159668056561
+    },
+    "response_93_to_97_hz": {
+      "power_ratio": 1.0000000011372923,
+      "change_db": 4.939197527077825e-9
+    }
+  },
+  "response_fits_unchanged": true,
+  "response_render_unchanged": true,
+  "before_layout_css_px": {
+    "viewport_width": 999,
+    "timing_tile_height": 218,
+    "response_tile_height": 651,
+    "video_tile_heights": [
+      309,
+      309
+    ]
+  },
+  "browser_checks": [
+    "5 Hz toggle applies and 94.87 Hz becomes strongest PSD peak",
+    "Bypass restores original 1.03 Hz dominant spectrum",
+    "10 Hz cutoff applies while target and response stay at 95 Hz",
+    "Invalid zero cutoff remains in workspace; corrected 5 Hz retry succeeds",
+    "Reload recovers high-pass checkbox, 5 Hz cutoff, PSD and response results",
+    "Normal viewport restored; no horizontal overflow at 390 CSS px",
+    "No browser warning/error logs"
+  ],
+  "after_layout_desktop": {
+    "advanced": false,
+    "cutoff": "5",
+    "error": null,
+    "filterEnabled": true,
+    "pageHeight": 1739,
+    "pageWidth": 999,
+    "target": "95",
+    "tiles": [
+      {
+        "height": 63,
+        "name": "panel timing-panel compact",
+        "width": 935
+      },
+      {
+        "height": 444,
+        "name": "panel target-panel",
+        "width": 935
+      },
+      {
+        "height": 309,
+        "name": "panel video-panel",
+        "width": 460
+      },
+      {
+        "height": 309,
+        "name": "panel video-panel",
+        "width": 460
+      }
+    ],
+    "viewportWidth": 999
+  },
+  "after_layout_mobile": {
+    "filterControls": [
+      {
+        "width": 107,
+        "x": 31,
+        "y": 400
+      },
+      {
+        "width": 117,
+        "x": 144,
+        "y": 392
+      },
+      {
+        "width": 86,
+        "x": 273,
+        "y": 392
+      }
+    ],
+    "pageHeight": 2290,
+    "pageWidth": 390,
+    "tiles": [
+      {
+        "height": 149,
+        "name": "panel timing-panel compact",
+        "width": 358
+      },
+      {
+        "height": 724,
+        "name": "panel target-panel",
+        "width": 358
+      },
+      {
+        "height": 156,
+        "name": "panel video-panel",
+        "width": 175
+      },
+      {
+        "height": 156,
+        "name": "panel video-panel",
+        "width": 175
+      }
+    ],
+    "viewportWidth": 390
+  },
+  "tests": "95 passed in 57.65s"
+}

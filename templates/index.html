@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Modal Camera · Frequency response explorer</title>
-  <link rel="stylesheet" href="/static/style.css?v=6">
-  <script defer src="/static/app.js?v=6"></script><script defer src="/static/response.js?v=6"></script><script defer src="/static/workflow.js?v=1"></script>
+  <link rel="stylesheet" href="/static/style.css?v=8">
+  <script defer src="/static/app.js?v=8"></script><script defer src="/static/response.js?v=6"></script><script defer src="/static/workflow.js?v=3"></script>
 </head>
 <body>
 <header>
@@ -33,11 +33,20 @@
       </article>
       <article class="panel target-panel">
         <div class="panelhead"><h3><span class="step">2</span> Choose the response</h3><span id="resultState" class="state-pill">Not analyzed</span></div>
+        <div class="response-setup"><section class="spectrum-pane" aria-label="Displacement spectrum">
+        <div class="spectrum-heading"><strong id="spectrumUnits">Original displacement PSD</strong></div>
+        <div class="spectrum-filter"><label class="check"><input id="spectrumHighpass" type="checkbox" aria-describedby="highpassHelp">High-pass PSD</label><label class="cutoff-input" for="highpassCutoff">Cutoff / Hz<input id="highpassCutoff" type="number" min=".001" value="5" step="any" disabled aria-describedby="highpassHelp"></label><button id="measureSpectrum" class="secondary">Measure PSD</button></div>
+        <p id="highpassHelp" class="hint">PSD only. Fits and videos keep their original motion.</p>
+        <canvas id="spectrum" width="600" height="210" aria-label="Displacement spectrum. Click a peak button or enter a target frequency beside the plot."></canvas>
+        <p id="spectrumSummary" class="hint">Confirm timing to measure the frequency content.</p>
+        <div id="spectrumLegend" class="spectrum-legend" role="group" aria-label="Spectrum peaks"></div>
+        </section><div class="target-controls">
         <div class="target-inputs"><label>Target frequency / Hz<input id="frequency" type="number" value="95" step="any" min=".001"></label><label>Bandwidth / Hz<input id="bandwidth" type="number" value="4" step="any" min=".001"></label></div>
         <p id="targetHelp" class="hint">The band follows the target frequency. Detailed fit settings are under Advanced.</p>
         <div class="run-actions"><button id="processResponse">Analyze response</button><button id="cancelProcessing" class="secondary" hidden>Stop after this step</button></div>
         <p id="appliedSummary" class="hint">Confirm timing, then analyze. No manual points required.</p>
         <p id="operationState" role="status" aria-live="polite"></p>
+        </div></div>
       </article>
     </div>
     <div class="viewbar"><h3><span class="step">3</span> Explore</h3><div class="view-buttons" role="group" aria-label="Response view">
@@ -74,7 +83,7 @@
         <section><h3>Optional measurement points</h3><div class="toolbar"><button id="pointMode" class="secondary" aria-pressed="false">Add points</button><button id="roiMode" class="secondary" aria-pressed="false">Draw ROI</button><button id="clearPoints" class="secondary">Clear points</button><button id="clearRoi" class="secondary">Full frame</button></div><div class="coordinate-inputs"><label>Point X / analysis px<input id="pointX" type="number" min="16" step="1"></label><label>Point Y / analysis px<input id="pointY" type="number" min="16" step="1"></label><button id="addPoint" class="secondary">Add point</button></div><p id="pointSummary" class="hint">No manual points. Automatic spatial sampling is available.</p><small>Choose textured corners at least 16 analysis pixels from an edge. Arrow keys move the image cursor; Enter adds a point when Add points is enabled.</small></section>
         <section><h3>Region of interest</h3><div class="settings"><label>X / analysis px<input id="roiX" type="number" min="0" step="1" value="0"></label><label>Y / analysis px<input id="roiY" type="number" min="0" step="1" value="0"></label><label>Width / analysis px<input id="roiWidth" type="number" min="8" step="1"></label><label>Height / analysis px<input id="roiHeight" type="number" min="8" step="1"></label></div><button id="applyRoi" class="secondary">Use this ROI</button><p class="hint">ROI limits the visualization and spatial sample centers. Point traces use their selected locations.</p></section>
       </div>
-      <section class="diagnostic"><div class="panelhead"><h3>Tracked displacement spectrum</h3><span id="spectrumUnits">ORIGINAL DISPLACEMENT</span></div><div class="spectrum-options"><label>Spectral view<select id="spectrumView"><option value="psd">PSD · Hann periodogram</option><option value="amplitude">Peak amplitude spectrum</option></select></label><label class="check"><input id="spectrumLog" type="checkbox" checked>Log PSD scale</label></div><canvas id="spectrum" width="900" height="270" aria-label="Original-displacement spectrum. Target and band can also be entered numerically."></canvas><div id="spectrumLegend" class="spectrum-legend"></div><p id="spectralHelp" class="hint"></p></section>
+      <section class="diagnostic"><h3>Spectrum settings and method</h3><div class="spectrum-options"><label>Spectral view<select id="spectrumView"><option value="psd">PSD · Hann periodogram</option><option value="amplitude">Peak amplitude spectrum</option></select></label><label class="check"><input id="spectrumLog" type="checkbox" checked>Log PSD scale</label></div><p id="spectralHelp" class="hint"></p><div id="spectrumDetails" class="spectrum-detail"></div></section>
       <section class="diagnostic"><div class="panelhead"><h3>Motion at selected points</h3><span id="phaseLabel">NO CURRENT FIT</span></div><div class="table-scroll"><table><thead><tr><th scope="col">Location</th><th scope="col">Peak amplitude</th><th scope="col">Relative phase</th><th scope="col">Accepted frames</th><th scope="col">Tracking and fit notes</th></tr></thead><tbody id="results"></tbody></table></div><canvas id="tracePlot" width="1150" height="210" aria-label="Original displacement traces with gaps for rejected samples"></canvas><p id="traceHelp" class="hint"></p></section>
       <section class="diagnostic"><h3>Method and quality</h3><p id="fieldLabel" class="hint"></p><div id="fieldWarnings" class="notes"></div><div id="inputWarnings" class="notes"></div><p>Heatmaps measure texture-dependent brightness variation, not displacement. Sensitivity is a display threshold, not confidence. Isolation masks magnified frames, which can still contain other frequencies. Local amplitudes and phases come from original tracked patches; unsupported areas are not measured. Animation is a fitted operating response, not an identified eigenmode. Verify capture timing, aliasing, exposure blur, rolling shutter, lighting and camera motion.</p><p class="hint">The active session recovers on refresh while this local server stays open. Opening a new clip replaces the current session and clears calibration. Stop after this step prevents subsequent analysis stages; the current calculation finishes first.</p></section>
     </details>

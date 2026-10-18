@@ -14,9 +14,10 @@ import cv2
 from flask import Flask, jsonify, render_template, request, Response, send_file
 import numpy as np
 from werkzeug.exceptions import HTTPException
-from modal_camera.processing import decode_video, magnify, track_points, analyze_tracks
+from modal_camera.processing import decode_video, magnify, track_points, track_locations, analyze_tracks
 from modal_camera.synthetic import write_demos
-from modal_camera.response import measure_field, modal_frame
+from modal_camera.response import measure_field, modal_frame, sample_grid
+from modal_camera.spectrum import displacement_spectrum, validate_highpass
 from modal_camera.video_export import export_metadata, export_frames, write_mp4, export_filename
 from modal_camera.session import defaults, validate_settings, validate_ui, signature
 
@@ -62,6 +63,8 @@ def check_revision(data):
 
 def change_settings(settings, force=False):
     previous = state['settings']
+    if signature(previous,'spectrum') != signature(settings,'spectrum'):
+        state['spectrum'] = state['spectrum_key'] = None
     for kind, extras in [('analysis',()),('field',('field_maps',)),
                          ('render',('render_info','response_display'))]:
         if force or signature(previous,kind) != signature(settings,kind):
@@ -96,7 +99,8 @@ def session_payload():
         return dict(clip=None)
     video = state['video']
     return dict(clip=dict(id=state['id'],metadata=video.metadata),settings=state['settings'],
-                revision=state['revision'],ui=state['ui'],analysis=state.get('analysis'),
+                revision=state['revision'],ui=state['ui'],spectrum=state.get('spectrum'),
+                spectrum_key=state.get('spectrum_key'),analysis=state.get('analysis'),
                 analysis_key=state.get('analysis_key'),render_info=state.get('render_info'),
                 render_key=state.get('render_key'),field=state.get('field'),field_key=state.get('field_key'))
 
@@ -198,6 +202,36 @@ def demo():
         return install_clip(decode_video(demos/(name+'.avi')),True)
 
 
+@app.post('/api/spectrum')
+def spectrum():
+    data = json_object()
+    with lock:
+        video = current(data.get('id'))
+        check_revision(data)
+        settings = state['settings']
+        points = settings['points']
+        if not state.get('spectrum'):
+            if points:
+                if state.get('point_coordinates') != points:
+                    state.update(traces=track_points(video,points),point_coordinates=points)
+                traces = state['traces']
+            else:
+                if settings['reference_last']:
+                    raise ValueError('Camera reference subtraction needs at least two selected points.')
+                coordinates, _ = sample_grid(video,settings['roi'])
+                identity = (id(video.frames),video.source_width,video.source_height)
+                cached = state.get('field_cache')
+                if cached is None or cached['coordinates'] != coordinates or cached.get('identity') != identity:
+                    cached = dict(coordinates=coordinates,identity=identity,
+                                  traces=track_locations(video,coordinates))
+                    state['field_cache'] = cached
+                traces = cached['traces']
+            result = displacement_spectrum(video,traces,settings['axis'],spatial=not points,
+                                           reference_last=settings['reference_last'],highpass_hz=settings['spectrum_highpass_hz'])
+            state.update(spectrum=result,spectrum_key=secrets.token_hex(8))
+        return jsonify(key=state['spectrum_key'],revision=state['revision'],**state['spectrum'])
+
+
 @app.post('/api/analyze')
 def analyze():
     data = json_object()
@@ -284,9 +318,16 @@ def timebase():
                         if override is not None else
                         'Frequencies use encoded video time. Original capture/playback speed must be verified for physical Hz.')
         state['video'] = replace(video,fps=fps,encoded_fps=encoded,timing_basis=basis,warnings=warnings)
-        change_settings(state['settings'],force=True)
+        state['spectrum'] = state['spectrum_key'] = None
+        settings = dict(state['settings'])
+        try:
+            validate_highpass(settings['spectrum_highpass_hz'],state['video'])
+        except ValueError:
+            settings['spectrum_highpass_hz'] = 0.
+        change_settings(settings,force=True)
         state['ui'].update(timing_mode='capture' if override is not None else 'encoded',timing_confirmed=True)
-        return jsonify(id=state['id'],metadata=state['video'].metadata,revision=state['revision'])
+        return jsonify(id=state['id'],metadata=state['video'].metadata,revision=state['revision'],
+                       spectrum_highpass_hz=settings['spectrum_highpass_hz'])
 
 
 @app.get('/api/frame/<clip_id>/<int:frame>')
@@ -322,13 +363,13 @@ def export(clip_id):
         video = current(clip_id)
         check_revision(request.args)
         analysis = state.get('analysis')
-        if analysis is None and state.get('field') is None:
-            raise ValueError('Analyze points or build the displacement map before exporting.')
+        if analysis is None and state.get('field') is None and state.get('spectrum') is None:
+            raise ValueError('Measure the PSD or analyze the response before exporting.')
         sensitivity = numeric(request.args.get('sensitivity',state['ui']['sensitivity']),'Sensitivity')
         modal_gain = numeric(request.args.get('modal_gain',state['ui']['modal_gain']),'Modal gain')
         if not 0 <= sensitivity <= 100 or not 0 <= modal_gain <= 20:
             raise ValueError('Sensitivity must be 0–100 and modal gain 0–20.')
-        output = dict(video=video.metadata,measurement=analysis,magnification=state.get('render_info'),
+        output = dict(video=video.metadata,measurement=analysis,displacement_spectrum=state.get('spectrum'),magnification=state.get('render_info'),
                       spatial_response=state.get('field'),display=dict(sensitivity=sensitivity,modal_gain=modal_gain,
                       view=request.args.get('view',state['ui']['view']),calibration_mm_per_source_px=state['settings']['calibration']),
                       method='Original-frame fixed-reference pyramidal LK; magnification linear Eulerian Laplacian luminance',

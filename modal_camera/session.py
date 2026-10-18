@@ -1,5 +1,6 @@
 """Validated clip settings and the dependencies of each computed result."""
 import math
+from .spectrum import validate_highpass
 
 
 def number(value, name):
@@ -16,11 +17,12 @@ def defaults(demo=False):
     return dict(frequency=3. if demo else 95., bandwidth=1. if demo else 4., linked=True,
                 low=2.5 if demo else 93., high=3.5 if demo else 97., gain=4., axis='y',
                 points=[[90,94],[230,94]] if demo else [], roi=None, reference='auto',
-                reference_last=False, calibration=None)
+                reference_last=False, calibration=None, spectrum_highpass_hz=0.)
 
 
 def validate_settings(settings, video):
     result = dict(settings)
+    result['spectrum_highpass_hz'] = validate_highpass(result.get('spectrum_highpass_hz',0),video)
     for key in ('frequency','bandwidth','low','high','gain'):
         result[key] = number(result.get(key),key.capitalize())
     if result['frequency'] <= 0 or result['bandwidth'] <= 0:
@@ -64,7 +66,8 @@ def validate_settings(settings, video):
 
 
 def signature(settings, kind):
-    keys = dict(analysis=('frequency','axis','points','reference_last'),
+    keys = dict(spectrum=('axis','points','reference_last','roi','spectrum_highpass_hz'),
+                analysis=('frequency','axis','points','reference_last'),
                 field=('frequency','axis','points','reference_last','roi','reference'),
                 render=('low','high','gain','roi'))[kind]
     return {key:settings[key] for key in keys}
