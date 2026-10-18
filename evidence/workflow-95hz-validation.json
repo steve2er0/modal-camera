@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-18",
+  "exports": [
+    {
+      "view": "heatmap",
+      "bytes": 905603,
+      "fps": 30.0,
+      "decoded_frames": 468,
+      "http_status": 200,
+      "mimetype": "video/mp4"
+    },
+    {
+      "view": "isolated",
+      "bytes": 756744,
+      "fps": 30.0,
+      "decoded_frames": 468,
+      "http_status": 200,
+      "mimetype": "video/mp4"
+    },
+    {
+      "view": "modal",
+      "bytes": 144498,
+      "fps": 30.0,
+      "decoded_frames": 120,
+      "http_status": 200,
+      "mimetype": "video/mp4"
+    }
+  ],
+  "full_python_tests": 77,
+  "focused_session_and_timing_tests": 16,
+  "plate": {
+    "target_hz": 95,
+    "band_hz": [
+      93,
+      97
+    ],
+    "assumed_capture_fps": 240,
+    "encoded_fps": 30,
+    "frames": 468,
+    "manual_points": 0,
+    "accepted_amplitude_patches": 59,
+    "usable_relative_phases": 29,
+    "sample_count": 72,
+    "interpolation_support_fraction": 0.13587843283728793
+  },
+  "physical_capture_timing_verified": false,
+  "video_export_test_settings": {
+    "sensitivity": 85,
+    "modal_gain": 10
+  },
+  "final_display_settings": {
+    "sensitivity": 76.0,
+    "modal_gain": 8.0
+  },
+  "browser_checks": [
+    "Scientific-setting edits remove old table, map, and export readiness",
+    "Calibration resets on clip replacement",
+    "Refresh restores active timing, target, display settings and computed results",
+    "Unknown capture mapping requires explicit assumption; target 95 is preserved",
+    "Out-of-range 95 Hz at encoded 30 fps gives an in-viewport error",
+    "Keyboard original-image point selection and numeric ROI work",
+    "Sample selector and response-canvas arrows expose amplitude and phase in text",
+    "Advanced independent 92-98 Hz band and ROI produce 45 sampled patches at the 95 Hz fit",
+    "Stop after current step clears partial results and disables exports",
+    "Prepared JSON uses current display settings and no stale point analysis",
+    "Prepared spatial CSV contains 72 original-displacement samples at 95 Hz",
+    "All three video buttons use unified Export and produce HTTP attachments",
+    "Desktop original and response image tops align",
+    "390 by 844 layout has no horizontal document overflow with Advanced closed or open",
+    "No captured Chrome JavaScript errors"
+  ],
+  "browser_filesystem_save_verified": false,
+  "windows_execution_tested": false,
+  "headless_smoke_script": "Updated and syntax checked; not executed in this run",
+  "files": [
+    "ui-workflow-95hz-desktop.png",
+    "ui-workflow-95hz-mobile.png"
+  ],
+  "full_suite_elapsed_s": 51.46,
+  "session_regression_cases": 18,
+  "additional_regressions": "Failed render, field, and point-processing requests preserve the prior valid session."
+}

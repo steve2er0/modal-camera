@@ -18,6 +18,7 @@ from modal_camera.processing import decode_video, magnify, track_points, analyze
 from modal_camera.synthetic import write_demos
 from modal_camera.response import measure_field, modal_frame
 from modal_camera.video_export import export_metadata, export_frames, write_mp4, export_filename
+from modal_camera.session import defaults, validate_settings, validate_ui, signature
 
 ROOT = Path(__file__).resolve().parent
 app = Flask(__name__)
@@ -27,6 +28,7 @@ state = {}
 lock = RLock()
 video_export_lock = Lock()
 latest_video_export = {}
+latest_data_export = {}
 ALLOWED_EXTENSIONS = {'.mp4','.m4v','.mov','.avi','.mkv','.webm'}
 
 
@@ -44,6 +46,59 @@ def current(clip_id):
     if state.get('id') != clip_id:
         raise ValueError('Clip is no longer loaded. Load a video and try again.')
     return state['video']
+
+
+def json_object():
+    data = request.get_json()
+    if not isinstance(data,dict):
+        raise ValueError('Settings must be a JSON object.')
+    return data
+
+
+def check_revision(data):
+    if 'revision' in data and data['revision'] != state.get('revision'):
+        raise ValueError('Settings changed in another tab. Reload to recover the current session.')
+
+
+def change_settings(settings, force=False):
+    previous = state['settings']
+    for kind, extras in [('analysis',()),('field',('field_maps',)),
+                         ('render',('render_info','response_display'))]:
+        if force or signature(previous,kind) != signature(settings,kind):
+            state[kind] = None
+            state[kind+'_key'] = None
+            for extra in extras:
+                state[extra] = None
+    if force or previous != settings:
+        state['revision'] = secrets.token_hex(8)
+    state['settings'] = settings
+
+
+def adopt_settings(data,kind):
+    check_revision(data)
+    keys = signature(state['settings'],kind)
+    fallback = dict(axis='y',reference_last=False,reference='auto',roi=None,points=[])
+    incoming = {key:data.get(key,fallback.get(key)) for key in keys}
+    proposed = dict(state['settings'],**incoming)
+    # Existing API clients can still choose independent bands explicitly.
+    if kind == 'render':
+        proposed['linked'] = False
+    proposed = validate_settings(proposed,state['video'])
+    if 'revision' in data:
+        if signature(proposed,kind) != signature(state['settings'],kind):
+            raise ValueError('Processing settings do not match the saved session. Update settings first.')
+    else:
+        change_settings(proposed)
+
+
+def session_payload():
+    if 'video' not in state:
+        return dict(clip=None)
+    video = state['video']
+    return dict(clip=dict(id=state['id'],metadata=video.metadata),settings=state['settings'],
+                revision=state['revision'],ui=state['ui'],analysis=state.get('analysis'),
+                analysis_key=state.get('analysis_key'),render_info=state.get('render_info'),
+                render_key=state.get('render_key'),field=state.get('field'),field_key=state.get('field_key'))
 
 
 @app.before_request
@@ -86,8 +141,33 @@ def index():
 def install_clip(video, demo=False):
     # Only one clip kept in RAM; replacement invalidates render and tracking state.
     state.clear()
-    state.update(id=secrets.token_hex(8),video=video,render=None,traces=None,analysis=None,field=None)
-    return jsonify(id=state['id'],metadata=video.metadata,default_points=[[90,94],[230,94]] if demo else [],default_band=[2.5,3.5] if demo else [max(2*video.fps/len(video.frames),.5),min(6.,video.fps/2-.1)])
+    state.update(id=secrets.token_hex(8),video=video,render=None,traces=None,analysis=None,field=None,
+                 revision=secrets.token_hex(8),settings=defaults(demo),
+                 ui=validate_ui(dict(timing_mode='encoded' if demo else '',timing_confirmed=demo),len(video.frames)))
+    latest_video_export.clear()
+    latest_data_export.clear()
+    return jsonify(id=state['id'],metadata=video.metadata,default_points=state['settings']['points'],
+                   default_band=[state['settings']['low'],state['settings']['high']],
+                   revision=state['revision'],settings=state['settings'],ui=state['ui'])
+
+
+@app.get('/api/session')
+def session():
+    with lock:
+        return jsonify(session_payload())
+
+
+@app.post('/api/settings')
+def settings():
+    data = json_object()
+    with lock:
+        video = current(data.get('id'))
+        check_revision(data)
+        proposed = validate_settings(data.get('settings',state['settings']),video)
+        ui = validate_ui(data.get('ui',state['ui']),len(video.frames))
+        change_settings(proposed,force=data.get('invalidate') is True)
+        state['ui'] = ui
+        return jsonify(revision=state['revision'])
 
 
 @app.post('/api/load')
@@ -120,9 +200,10 @@ def demo():
 
 @app.post('/api/analyze')
 def analyze():
-    data = request.get_json()
+    data = json_object()
     with lock:
         video = current(data.get('id'))
+        check_revision(data)
         points = data.get('points')
         axis = data.get('axis','y')
         f = data.get('frequency')
@@ -131,15 +212,19 @@ def analyze():
             traces = track_points(video,points)
             state.update(traces=traces,point_coordinates=points)
         result = analyze_tracks(video,state['traces'],axis,f,reference_last=bool(data.get('reference_last',False)))
+        adopt_settings(dict(data,frequency=result['frequency_hz'],axis=axis,points=points,
+                            reference_last=result['reference_last']),'analysis')
         state['analysis'] = result
-        return jsonify(result)
+        state['analysis_key'] = secrets.token_hex(8)
+        return jsonify(key=state['analysis_key'],revision=state['revision'],**result)
 
 
 @app.post('/api/render')
 def render():
-    data = request.get_json()
+    data = json_object()
     with lock:
         video = current(data.get('id'))
+        check_revision(data)
         low,high,gain = [numeric(data.get(k),k) for k in ('low','high','gain')]
         roi = data.get('roi')
         if roi is not None and (not isinstance(roi,list) or len(roi)!=4 or not all(isinstance(x,(int,float)) and math.isfinite(x) for x in roi)):
@@ -147,8 +232,9 @@ def render():
         rendered, info, response = magnify(video,low,high,gain,roi,return_response=True)
         reference = info['response']['display_reference_rms']
         response_display = np.clip(response / max(reference,1e-6)*255,0,255).astype(np.uint8)
+        adopt_settings(data,'render')
         state.update(render=rendered,render_key=secrets.token_hex(8),render_info=info,response_display=response_display)
-        return jsonify(key=state['render_key'],**info)
+        return jsonify(key=state['render_key'],revision=state['revision'],**info)
 
 
 @app.get('/api/response/<clip_id>')
@@ -165,22 +251,25 @@ def response_image(clip_id):
 
 @app.post('/api/field')
 def spatial_field():
-    data = request.get_json()
+    data = json_object()
     with lock:
         video = current(data.get('id'))
+        check_revision(data)
         result, cache, maps = measure_field(video,numeric(data.get('frequency'),'Frequency'),
                                            axis=data.get('axis','y'),roi=data.get('roi'),points=data.get('points'),
                                            reference=data.get('reference','auto'),reference_last=bool(data.get('reference_last',False)),
                                            cached=state.get('field_cache'))
+        adopt_settings(dict(data,points=data.get('points') or [],reference_last=result['reference_last']),'field')
         state.update(field=result,field_cache=cache,field_maps=maps,field_key=secrets.token_hex(8))
-        return jsonify(key=state['field_key'],**result)
+        return jsonify(key=state['field_key'],revision=state['revision'],**result)
 
 
 @app.post('/api/timebase')
 def timebase():
-    data = request.get_json()
+    data = json_object()
     with lock:
         video = current(data.get('id'))
+        check_revision(data)
         encoded = video.encoded_fps or video.fps
         override = data.get('capture_fps')
         fps = numeric(override,'Capture fps') if override is not None else encoded
@@ -189,9 +278,15 @@ def timebase():
         if override is not None and data.get('one_frame_per_sample') is not True:
             raise ValueError('Confirm one encoded frame per captured sample before using a capture-rate override.')
         basis = 'user-assumed capture time: one frame per captured sample' if override is not None else 'encoded video time'
-        state['video'] = replace(video,fps=fps,encoded_fps=encoded,timing_basis=basis)
-        state.update(render=None,render_key=None,analysis=None,render_info=None,response_display=None,field=None,field_key=None,field_maps=None)
-        return jsonify(id=state['id'],metadata=state['video'].metadata)
+        warnings = [w for w in video.warnings if not w.startswith(('Frequencies use encoded video time.',
+                    'Analysis frequencies use a user-assumed capture rate.'))]
+        warnings.append('Analysis frequencies use a user-assumed capture rate. Verify one encoded frame per captured sample; physical timing remains unverified.'
+                        if override is not None else
+                        'Frequencies use encoded video time. Original capture/playback speed must be verified for physical Hz.')
+        state['video'] = replace(video,fps=fps,encoded_fps=encoded,timing_basis=basis,warnings=warnings)
+        change_settings(state['settings'],force=True)
+        state['ui'].update(timing_mode='capture' if override is not None else 'encoded',timing_confirmed=True)
+        return jsonify(id=state['id'],metadata=state['video'].metadata,revision=state['revision'])
 
 
 @app.get('/api/frame/<clip_id>/<int:frame>')
@@ -225,16 +320,17 @@ def frame(clip_id,frame):
 def export(clip_id):
     with lock:
         video = current(clip_id)
+        check_revision(request.args)
         analysis = state.get('analysis')
         if analysis is None and state.get('field') is None:
             raise ValueError('Analyze points or build the displacement map before exporting.')
-        sensitivity = numeric(request.args.get('sensitivity',85),'Sensitivity')
-        modal_gain = numeric(request.args.get('modal_gain',10),'Modal gain')
+        sensitivity = numeric(request.args.get('sensitivity',state['ui']['sensitivity']),'Sensitivity')
+        modal_gain = numeric(request.args.get('modal_gain',state['ui']['modal_gain']),'Modal gain')
         if not 0 <= sensitivity <= 100 or not 0 <= modal_gain <= 20:
             raise ValueError('Sensitivity must be 0–100 and modal gain 0–20.')
         output = dict(video=video.metadata,measurement=analysis,magnification=state.get('render_info'),
                       spatial_response=state.get('field'),display=dict(sensitivity=sensitivity,modal_gain=modal_gain,
-                      view=request.args.get('view','amplified'),calibration_mm_per_source_px=request.args.get('calibration') or None),
+                      view=request.args.get('view',state['ui']['view']),calibration_mm_per_source_px=state['settings']['calibration']),
                       method='Original-frame fixed-reference pyramidal LK; magnification linear Eulerian Laplacian luminance',
                       caveat='Frequency is video-time Hz; verify original capture/playback speed. This is not an identified mode.')
         return Response(json.dumps(output,indent=2),mimetype='application/json',headers={'Content-Disposition':'attachment; filename=modal-camera-analysis.json'})
@@ -247,6 +343,7 @@ def export_video():
         raise ValueError('Export settings must be a JSON object.')
     with lock:
         video = current(data.get('id'))
+        check_revision(data)
         view = data.get('view')
         key_name = 'field_key' if view == 'modal' else 'render_key'
         if not state.get(key_name) or data.get('key') != state.get(key_name):
@@ -293,6 +390,7 @@ def download_exported_video(export_key,filename):
 def field_csv(clip_id):
     with lock:
         current(clip_id)
+        check_revision(request.args)
         result = state.get('field')
         if result is None:
             raise ValueError('Build the displacement map before exporting spatial samples.')
@@ -314,6 +412,7 @@ def field_csv(clip_id):
 def export_csv(clip_id):
     with lock:
         video = current(clip_id)
+        check_revision(request.args)
         result = state.get('analysis')
         if result is None:
             raise ValueError('Analyze points before exporting.')
@@ -329,6 +428,34 @@ def export_csv(clip_id):
                 row += [p['dx'][i],p['dy'][i],p['valid'][i],p['quality']['fb_error_px'][i],p['quality']['ncc'][i]]
             writer.writerow(row)
         return Response(stream.getvalue(),mimetype='text/csv',headers={'Content-Disposition':'attachment; filename=modal-camera-traces.csv'})
+
+
+@app.post('/api/export-data')
+def prepare_data_export():
+    data = json_object()
+    with lock:
+        current(data.get('id'))
+        if data.get('revision') != state['revision']:
+            raise ValueError('Results are no longer current. Analyze the response before exporting.')
+        kind = data.get('kind')
+        if kind not in ('analysis','samples','traces'):
+            raise ValueError('Choose analysis JSON, spatial samples, or point traces.')
+        response = {'analysis':export,'samples':field_csv,'traces':export_csv}[kind](state['id'])
+        filename = {'analysis':'modal-camera-analysis.json','samples':'modal-camera-spatial-response.csv',
+                    'traces':'modal-camera-traces.csv'}[kind]
+        token = secrets.token_hex(16)
+        latest_data_export.clear()
+        latest_data_export.update(key=token,filename=filename,data=response.get_data(),mimetype=response.mimetype)
+        return jsonify(url=f'/api/download-data/{token}/{filename}',filename=filename)
+
+
+@app.get('/api/download-data/<token>/<filename>')
+def download_data(token,filename):
+    with lock:
+        if token != latest_data_export.get('key') or filename != latest_data_export.get('filename'):
+            raise ValueError('This data download has expired. Export again.')
+        payload,mimetype = latest_data_export['data'],latest_data_export['mimetype']
+    return send_file(io.BytesIO(payload),mimetype=mimetype,as_attachment=True,download_name=filename)
 
 
 if __name__=='__main__':

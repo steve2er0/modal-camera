@@ -6,13 +6,13 @@ const viewNames={amplified:'Amplified',heatmap:'Frequency heatmap',isolated:'Iso
 function pauseModal(){modalPlaying=false;$('modalPlay').textContent='▶ Animate';}
 function invalidateField(){
   pauseModal();modalRequest++;spatialField=null;hoverNode=null;referenceImage?.close();referenceImage=null;modalImage?.close();modalImage=null;
-  $('fieldLabel').textContent='BUILD / REBUILD THE SPATIAL MAP';$('fieldSummary').textContent='Build the displacement map at the selected fit frequency to show local amplitude, phase and fitted motion.';
+  $('fieldLabel').textContent='NO CURRENT SPATIAL MAP';$('fieldSummary').textContent='Analyze response to update local displacement and phase.';$('sampleSelect').replaceChildren(new Option('Choose a sample…',''));
   notes('fieldWarnings',[]);$('responseInspect').hidden=true;updateResponseHelp();
 }
 function resetResponse(){
   clearVideoDownload();
   invalidateField();renderInfo=null;responsePixels=null;heatLayer=null;maskLayer=null;
-  $('responseView').value='amplified';$('sensitivity').value='85';$('modalGain').value='10';$('modalPhase').value='0';
+  $('responseView').value='heatmap';$('sensitivity').value='85';$('modalGain').value='10';$('modalPhase').value='0';
   $('modalPhaseLabel').textContent='0°';$('modalGainValue').textContent='10×';updateResponseHelp();
 }
 function rasterCanvas(width,height){const c=document.createElement('canvas');c.width=width;c.height=height;return c;}
@@ -38,56 +38,34 @@ function rebuildResponseLayers(){
   heatLayer.getContext('2d').putImageData(heat,0,0);maskLayer.getContext('2d').putImageData(mask,0,0);
 }
 function amplitudeText(value){const scale=Number($('calibration').value);return `${value.toFixed(4)} px${scale>0&&Number.isFinite(scale)?' / '+(value*scale).toPrecision(4)+' mm':''}`;}
-function updateExportLinks(){
-  if(!clip)return;const query=new URLSearchParams({sensitivity:$('sensitivity').value,modal_gain:$('modalGain').value,view:$('responseView').value,calibration:$('calibration').value});
-  $('jsonExport').href=`/api/export/${clip.id}?${query}`;$('fieldExport').href=`/api/field-csv/${clip.id}`;
-}
-function updateVideoExportButtons(){
-  const bandReady=Boolean(clip&&renderKey&&renderInfo&&responsePixels);
-  $('exportHeatmap').disabled=busy||!bandReady;$('exportIsolated').disabled=busy||!bandReady;
-  $('exportModal').disabled=busy||!clip||!spatialField||spatialField.reference.phase_deg===null;
-}
-function clearVideoDownload(){
-  $('videoDownload').hidden=true;$('videoDownload').removeAttribute('href');
-}
-async function downloadResponseVideo(view){
-  if(!clip)throw new Error('Load a video first.');
-  clearVideoDownload();
-  const data={id:clip.id,view,key:view==='modal'?spatialField?.key:renderKey,
-    sensitivity:Number($('sensitivity').value),modal_gain:Number($('modalGain').value),phase_start:Number($('modalPhase').value)};
-  const response=await fetch('/api/export-video?prepare=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  const result=await response.json();if(!response.ok)throw new Error(result.error||'Video export failed.');
-  const link=$('videoDownload');link.href=result.url;link.download=result.filename;link.textContent=`Save ${result.filename}`;link.hidden=false;link.click();
-  status(`${viewNames[view]} MP4 ready. Download requested; use the Save MP4 link if your browser does not save it automatically.`);
-}
-for(const [id,view] of [['exportHeatmap','heatmap'],['exportIsolated','isolated'],['exportModal','modal']]){
-  $(id).onclick=()=>task(`Encoding ${viewNames[view].toLowerCase()} MP4 with the current sensitivity and gain…`,()=>downloadResponseVideo(view));
-}
+function clearVideoDownload(){ $('videoDownload').hidden=true;$('videoDownload').removeAttribute('href'); }
+function updateExportLinks(){updateExports();}
+function updateVideoExportButtons(){updateExports();}
 function updateResponseHelp(){
   const view=$('responseView').value,field=fieldViews.has(view);$('visualizationTitle').textContent=viewNames[view];
-  $('sensitivityValue').textContent=$('sensitivity').value+'%';$('responseLegend').hidden=view==='amplified';
+  $('sensitivityValue').textContent=$('sensitivity').value+'%';$('responseLegend').hidden=view==='amplified'||(field?!spatialField:!renderInfo);$('sensitivityControl').hidden=view==='amplified'||(field?!spatialField:!renderInfo);$('modalGainControl').hidden=view!=='modal';$('sampleInspector').hidden=!field||!spatialField;for(const button of document.querySelectorAll('[data-view]'))button.setAttribute('aria-pressed',String(button.dataset.view===view));
   $('videoPlayback').hidden=view==='modal';$('modalPlayback').hidden=view!=='modal';
   $('responseRamp').className='response-ramp'+(view==='phase'?' phase':view==='modal'?' signed':'');
   if(field){
-    $('renderLabel').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} Hz · ${spatialField.axis.toUpperCase()} fit`:'BUILD SPATIAL MAP';
+    $('renderLabel').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} Hz · ${spatialField.axis.toUpperCase()} fit`:'ANALYZE RESPONSE';
     const max=spatialField?.amplitude_display_max_px||0,cut=max*sensitivityThreshold();
     $('responseScale').textContent=view==='phase'?'−180° · −90° · 0° · +90° · +180°; relative to '+(spatialField?.reference.label||'reference'):
       view==='modal'?'Blue = negative; orange = positive '+(spatialField?.axis.toUpperCase()||'Y')+' displacement':`Peak amplitude 0–${amplitudeText(max)}; show above ${amplitudeText(cut)}`;
-    $('responseHelp').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} analysis-time Hz · ${spatialField.axis.toUpperCase()} amplitude / phase · ${spatialField.reference.label}. ${view==='modal'?'Single-frequency synthesis about frame 0; arrows use fitted X/Y motion.':'Circles are measured patches; crosses have insufficient accepted data.'} Weak phases are withheld.`:'Build the displacement & phase map below using the fit frequency and axis. These views use original displacement measurements.';
+    $('responseHelp').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} analysis-time Hz · ${spatialField.axis.toUpperCase()} amplitude / phase · ${spatialField.reference.label}. ${view==='modal'?'Single-frequency synthesis about frame 0; arrows use fitted X/Y motion.':'Circles are measured patches; crosses have insufficient accepted data.'} Weak phases are withheld.`:'Analyze response at the selected target frequency. These views use original displacement measurements.';
   }else{
-    $('renderLabel').textContent=renderInfo?`${renderInfo.low.toFixed(2)}–${renderInfo.high.toFixed(2)} Hz · α ${renderInfo.gain}`:'APPLY A BAND';
+    $('renderLabel').textContent=renderInfo?`${renderInfo.low.toFixed(2)}–${renderInfo.high.toFixed(2)} Hz · gain ${renderInfo.gain}`:'ANALYZE RESPONSE';
     const reference=renderInfo?.response.display_reference_rms||0;
     $('responseScale').textContent=`0–${reference.toFixed(3)} luminance levels RMS; show above ${(reference*sensitivityThreshold()).toFixed(3)}. Colors saturate at the 99th percentile.`;
     $('responseHelp').textContent=view==='amplified'?'Magnified images are visualization only. Measurements use original frames.':`${renderInfo?renderInfo.low.toFixed(2)+'–'+renderInfo.high.toFixed(2)+' Hz · ':''}Stable mask from original band-response RMS, independent of gain. Brightness variation is texture-dependent and can include lighting flicker; dark does not prove stationary.`;
   }
-  updateExportLinks();updateVideoExportButtons();if(hoverNode!==null&&spatialField)inspectNode(hoverNode);
+  updateExports();if(hoverNode!==null&&spatialField)inspectNode(hoverNode);
 }
 function centeredMessage(ctx,c,text){ctx.fillStyle='#101820dc';ctx.fillRect(0,c.height/2-22,c.width,44);ctx.fillStyle='#c0d1df';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(text,c.width/2,c.height/2+4);ctx.textAlign='left';}
 function drawResponse(ctx,c){
   const view=$('responseView').value;
   if(view==='amplified')return false;
   if(view==='heatmap'||view==='isolated'){
-    if(!heatLayer||!renderKey){centeredMessage(ctx,c,'Apply a frequency band to reveal responding regions');return true;}
+    if(!heatLayer||!renderKey){centeredMessage(ctx,c,'Analyze response to reveal responding regions');return true;}
     ctx.fillStyle='#080d13';ctx.fillRect(0,0,c.width,c.height);
     if(view==='heatmap'){
       ctx.globalAlpha=.5;if(originalImage)ctx.drawImage(originalImage,0,0);ctx.globalAlpha=1;ctx.drawImage(heatLayer,0,0);
@@ -97,7 +75,7 @@ function drawResponse(ctx,c){
     }
     return true;
   }
-  if(!spatialField||!referenceImage){centeredMessage(ctx,c,'Build the displacement & phase map below');return true;}
+  if(!spatialField||!referenceImage){centeredMessage(ctx,c,'Analyze response to measure this view');return true;}
   ctx.fillStyle='#080d13';ctx.fillRect(0,0,c.width,c.height);
   ctx.globalAlpha=view==='modal'?.85:.45;ctx.drawImage(view==='modal'&&modalImage?modalImage:referenceImage,0,0);ctx.globalAlpha=1;
   const max=spatialField.amplitude_display_max_px||1,phase=Number($('modalPhase').value),gain=Number($('modalGain').value);
@@ -131,7 +109,7 @@ function drawResponse(ctx,c){
 }
 function inspectNode(index){
   const node=spatialField.nodes[index],fit=node.fit[spatialField.axis],relative=node.relative_phase_deg;
-  $('responseInspect').hidden=false;
+  $('responseInspect').hidden=false;$('sampleSelect').value=String(index);
   $('responseInspect').textContent=`Grid ${index+1} (${node.x.toFixed(0)}, ${node.y.toFixed(0)} analysis px) · ${spatialField.axis.toUpperCase()} peak ${fit?amplitudeText(fit.amplitude_peak_px):'withheld'} · relative phase ${relative===null?'unavailable':relative.toFixed(1)+'°'} · accepted ${(node.valid_fraction*100).toFixed(1)}%${fit?' · fit residual '+amplitudeText(fit.rms_residual_px)+' · harmonic power fraction '+(fit.harmonic_power_fraction*100).toFixed(1)+'%':''}. ${node.warnings.join(' ')}`;
 }
 $('amplified').onpointermove=e=>{
@@ -142,17 +120,32 @@ $('amplified').onpointermove=e=>{
   hoverNode=nearest;if(nearest!==null)inspectNode(nearest);else $('responseInspect').hidden=true;drawVideos();
 };
 $('amplified').onclick=$('amplified').onpointermove;
-$('responseView').onchange=()=>{pause();hoverNode=null;$('responseInspect').hidden=true;updateResponseHelp();drawVideos();if($('responseView').value==='modal'&&spatialField)refreshModal().catch(showError);};
-$('sensitivity').oninput=()=>{rebuildResponseLayers();updateResponseHelp();drawVideos();if($('responseView').value==='modal')requestModal();};
-$('fieldReference').onchange=()=>{invalidateField();drawVideos();};
-$('buildField').onclick=()=>task('Tracking original texture patches and fitting the spatial response…',async()=>{
-  if(!clip)throw new Error('Load a video first.');
-  const result=await api('/api/field',{id:clip.id,frequency:Number($('frequency').value),axis:$('axis').value,roi,points,reference:$('fieldReference').value,reference_last:$('cameraReference').checked});
-  invalidateField();spatialField=result;referenceImage=await getImage(frameUrl('original',0));
+function selectView(view){
+  pause();clearVideoDownload();$('responseView').value=view;hoverNode=null;$('responseInspect').hidden=true;updateResponseHelp();drawVideos();
+  if(view==='modal'&&spatialField)refreshModal().catch(showError);
+  $('exportKind').value=['heatmap','isolated','modal'].includes(view)?view:fieldViews.has(view)?'samples':'heatmap';
+  saveDisplay();updateExports();
+}
+$('responseView').onchange=()=>selectView($('responseView').value);
+for(const button of document.querySelectorAll('[data-view]'))button.onclick=()=>selectView(button.dataset.view);
+$('sensitivity').oninput=()=>{rebuildResponseLayers();updateResponseHelp();drawVideos();if($('responseView').value==='modal')requestModal();clearVideoDownload();saveDisplay();};
+async function runField(){
+  const result=await api('/api/field',{id:clip.id,revision,frequency:Number($('frequency').value),axis:$('axis').value,roi,points,reference:$('fieldReference').value,reference_last:$('cameraReference').checked});
+  invalidateField();spatialField=result;revision=result.revision;referenceImage=await getImage(frameUrl('original',0));showFieldSummary();updateResponseHelp();drawVideos();
+}
+function showFieldSummary(){
+  const result=spatialField;if(!result)return;
   $('fieldLabel').textContent=`${result.frequency_hz.toFixed(3)} Hz · ${result.axis.toUpperCase()} · ORIGINAL DISPLACEMENT`;
-  $('fieldSummary').textContent=`${result.accepted_nodes}/${result.nodes.length} accepted amplitude fits · ${result.phase_nodes} usable relative phases · ${result.grid.step} analysis px grid spacing · ${result.reference.label} · ${(result.interpolated_support_fraction*100).toFixed(1)}% image support for interpolated warping. ${result.timing_basis}.`;
-  notes('fieldWarnings',result.warnings);$('responseView').value='amplitude';updateResponseHelp();drawVideos();status('Spatial response ready. Inspect the amplitude and phase views, or choose Modal animation and press Animate.');
-});
+  $('fieldSummary').textContent=`${result.accepted_nodes}/${result.nodes.length} accepted patches · ${result.phase_nodes} usable phases · ${(result.interpolated_support_fraction*100).toFixed(1)}% interpolation support · ${result.reference.label}.`;
+  notes('fieldWarnings',result.warnings);
+  $('sampleSelect').replaceChildren(new Option('Choose a sample…',''),...result.nodes.map((node,i)=>new Option(`Grid ${i+1} (${node.x}, ${node.y}) · ${node.amplitude_peak_px===null?'withheld':amplitudeText(node.amplitude_peak_px)} · phase ${node.relative_phase_deg===null?'unavailable':node.relative_phase_deg.toFixed(1)+'°'}`,String(i))));
+}
+$('sampleSelect').onchange=()=>{hoverNode=$('sampleSelect').value===''?null:Number($('sampleSelect').value);if(hoverNode===null)$('responseInspect').hidden=true;else inspectNode(hoverNode);drawVideos();};
+$('amplified').onkeydown=e=>{
+  if(!spatialField||!fieldViews.has($('responseView').value)||!e.key.startsWith('Arrow'))return;
+  e.preventDefault();const step=e.key==='ArrowDown'?spatialField.grid.columns:e.key==='ArrowUp'?-spatialField.grid.columns:e.key==='ArrowRight'?1:-1;
+  hoverNode=Math.max(0,Math.min(spatialField.nodes.length-1,(hoverNode??0)+step));inspectNode(hoverNode);drawVideos();
+};
 async function refreshModal(){
   if(!spatialField||spatialField.reference.phase_deg===null||$('responseView').value!=='modal')return;
   const e=epoch,key=spatialField.key,requestId=++modalRequest;
@@ -162,10 +155,10 @@ async function refreshModal(){
   modalImage?.close();modalImage=bitmap;drawVideos();
 }
 function requestModal(){clearTimeout(modalTimer);modalTimer=setTimeout(()=>refreshModal().catch(showError),45);}
-$('modalPhase').oninput=()=>{pauseModal();$('modalPhaseLabel').textContent=Math.round(Number($('modalPhase').value))+'°';drawVideos();requestModal();};
-$('modalGain').oninput=()=>{$('modalGainValue').textContent=$('modalGain').value+'×';updateExportLinks();drawVideos();requestModal();};
+$('modalPhase').oninput=()=>{pauseModal();$('modalPhaseLabel').textContent=Math.round(Number($('modalPhase').value))+'°';drawVideos();requestModal();saveDisplay();};
+$('modalGain').oninput=()=>{$('modalGainValue').textContent=$('modalGain').value+'×';updateExports();drawVideos();requestModal();clearVideoDownload();saveDisplay();saveDisplay();};
 $('modalPlay').onclick=()=>{
-  if(modalPlaying){pauseModal();return;}
+  if(modalPlaying){pauseModal();saveDisplay();return;}
   if(!spatialField||spatialField.reference.phase_deg===null){showError(new Error('Build a displacement map with a usable phase reference first.'));return;}
   pause();modalPlaying=true;$('modalPlay').textContent='Ⅱ Pause';const start=performance.now(),initial=Number($('modalPhase').value);let last=0;
   async function tick(now){
