@@ -148,3 +148,58 @@ Windows equivalents use `.\.venv\Scripts\python.exe`. Node is not needed to run 
 - `evidence/`: local test report, numerical results and UI screenshots/check notes.
 
 The implementation is original prototype code; no MIT source code or archive was downloaded or incorporated.
+
+
+### Virtual tap sandbox (assumed one-mode model)
+
+Analyze the existing recording, then choose **Virtual tap** in Explore. The
+Original and response tiles retain their layout. No new recording is needed for
+this exploratory simulation. Choose a usable dot or a tap location, adjust
+**assumed damping** (0.1–5%) and **relative tap strength** (0–5), then press Tap.
+Two selectable point traces show simulated selected-axis displacement in source
+pixels, excluding display gain. Reset, time scrubbing, pause/resume, and replay
+use the same analytical response. Defaults: 1% damping, strength 1, 40 cycles,
+and two displayed cycles per second. Detailed assumptions, direction, cycle
+count (5–60), and display speed (1–5 cycles/s) are under Advanced. Sandbox
+settings and cursor recover on refresh while this local server remains open.
+
+The measured single-frequency operating response supplies an **approximate
+standing-mode shape**. Usable X/Y harmonic coefficients are rotated to the
+common phase axis that maximizes selected-axis real projection energy. A global
+sign makes the strongest component positive. The real projection is normalized
+to maximum absolute selected-axis value 1; quadrature motion is discarded. The
+reported retained-energy fraction describes this projection and is not mode
+confidence or an eigenmode-identification test. Weak/rejected selected-axis
+phases are excluded. Image interpolation stays within cells with four usable
+corners; unsupported cells are not warped. Traces refer to the model at measured
+patch centers, not to independent measured per-pixel displacements.
+
+For the assumed natural frequency `f`, `omega = 2*pi*f`, and assumed damping
+ratio `zeta`, the normalized model is `M = [1]`, `C = [2*zeta*omega]`, and
+`K = [omega**2]`. This normalization supplies no kilograms, N/m, or calibrated
+force transfer. Initial displacement is zero. A relative ideal impulse sets
+`qdot(0+) = strength * direction * phi_axis(tap) * omega * A_ref`, where `A_ref`
+is the largest original fitted selected-axis peak among usable patches (source
+pixels). The exact underdamped response is
+`q(t) = qdot(0+)/omega_d * exp(-zeta*omega*t) * sin(omega_d*t)`, with
+`omega_d = omega*sqrt(1-zeta**2)`. Point displacement is `phi_axis(point)*q(t)`.
+Moving the tap changes participation and sign; one retained mode always has the
+same spatial shape. A zero strength or zero participation produces no motion.
+
+The target frequency is **assumed** to be a natural frequency. Damping is not
+estimated from the video. Fixed supports, linear small motion, and the observed
+camera-plane directions are assumed; unseen modes and out-of-plane displacement
+are not inferred. Even with optional image calibration, these simulated traces
+stay labeled source pixels and do not establish a physical impulse response.
+Playback slowdown is `f / displayed_cycles_per_second`, independent of the
+recording's encoded playback rate and of display gain. A finite cycle window can
+end before a lightly damped response has decayed; the duration is explicit.
+
+**Virtual tap MP4** shares the full selected simulation from time zero, at 30
+encoded fps, with the selected gain, tap/probe markers, point traces, cursor,
+assumed damping and relative strength, simulation time, slowdown, source timing,
+and model caveats. Assumptions and normalized matrices are embedded in the MP4
+comment metadata. **Simulated tap traces CSV** exports unamplified simulated
+source-pixel traces and their assumptions separately from measured point traces.
+Changing the field, timing, or clip invalidates the sandbox; display/model changes
+do not modify the original measured traces.

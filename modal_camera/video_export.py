@@ -14,8 +14,9 @@ import cv2
 import numpy as np
 
 from .response import modal_frame
+from .virtual_tap import tap_display_frame
 
-VIEWS = {'heatmap', 'isolated', 'modal'}
+VIEWS = {'heatmap', 'isolated', 'modal', 'tap'}
 BACKGROUND = np.array([8, 13, 19], dtype=np.float32)
 MODAL_FPS = 30
 MODAL_CYCLES = 4
@@ -79,9 +80,9 @@ def modal_display_frame(video, field, maps, phase, gain, sensitivity):
     return rgb
 
 
-def export_metadata(video, view, sensitivity, modal_gain, phase_start, render_info=None, field=None):
+def export_metadata(video, view, sensitivity, modal_gain, phase_start, render_info=None, field=None, tap=None):
     if view not in VIEWS:
-        raise ValueError('Choose heatmap, isolated or modal video export.')
+        raise ValueError('Choose heatmap, isolated, modal or virtual tap video export.')
     if not math.isfinite(sensitivity) or not 0 <= sensitivity <= 100:
         raise ValueError('Sensitivity must be between 0 and 100.')
     if not math.isfinite(modal_gain) or not 0 <= modal_gain <= 20:
@@ -91,16 +92,27 @@ def export_metadata(video, view, sensitivity, modal_gain, phase_start, render_in
     modal = view == 'modal'
     if modal and (field is None or field['reference']['phase_deg'] is None):
         raise ValueError('Build a displacement map with a usable phase reference before exporting modal animation.')
-    if not modal and render_info is None:
+    if view == 'tap' and tap is None:
+        raise ValueError('Prepare a virtual tap simulation before exporting it.')
+    if not modal and view != 'tap' and render_info is None:
         raise ValueError('Apply the selected band before exporting heatmap or isolated video.')
-    fps = MODAL_FPS if modal else video.encoded_fps or video.fps
+    fps = MODAL_FPS if modal or view == 'tap' else video.encoded_fps or video.fps
     count = MODAL_FPS * MODAL_CYCLES if modal else len(video.frames)
     result = dict(view=view, sensitivity=sensitivity, analysis_fps=video.fps,
                   encoded_fps=video.encoded_fps or video.fps, timing_basis=video.timing_basis,
                   export_fps=fps, export_frames=count, export_duration_s=count/fps,
                   codec='H.264 / yuv420p', audio=False,
                   resolution='Analysis image scaled to fit 640 x 480, with separate annotations')
-    if modal:
+    if view == 'tap':
+        config, model = tap['settings'], tap['model']
+        count = math.ceil(tap['display_duration_s']*fps)+1
+        result.update(frequency_hz=model['frequency_hz'], axis=model['axis'], modal_gain=modal_gain,
+                      export_frames=count, export_duration_s=count/fps,
+                      simulation_duration_s=tap['duration_s'], display_cycles_per_second=config['display_cps'],
+                      playback_slowdown=model['frequency_hz']/config['display_cps'],
+                      interpretation=model['interpretation'], tap_settings=config, tap_model=model,
+                      normalized_matrices=tap['normalized_matrices'], _tap_traces=tap)
+    elif modal:
         result.update(frequency_hz=field['frequency_hz'], axis=field['axis'], modal_gain=modal_gain,
                       phase_start_deg=phase_start % 360, display_cycles=MODAL_CYCLES,
                       display_cycles_per_second=1, phase_reference=field['reference']['label'],
@@ -112,6 +124,41 @@ def export_metadata(video, view, sensitivity, modal_gain, phase_start, render_in
                       response_reference_rms=render_info['response']['display_reference_rms'],
                       interpretation='Bandpassed luminance RMS; texture dependent, not displacement amplitude')
     return result
+
+
+def annotate_tap(rgb, metadata, time_s):
+    """Include model provenance, time cursor and simulated probes in shared video."""
+    h, w = rgb.shape[:2]
+    scale = min(640/w, 480/h)
+    iw, ih = round(w*scale), round(h*scale)
+    height = 64+ih+240
+    height += height % 2
+    output = np.full((height,640,3),(8,17,24),np.uint8)
+    output[64:64+ih,(640-iw)//2:(640-iw)//2+iw] = cv2.resize(rgb,(iw,ih))
+    config, model = metadata['tap_settings'], metadata['tap_model']
+    text_line(output, f"VIRTUAL TAP | {model['frequency_hz']:.3f} Hz | ASSUMED MODEL", 26,(54,207,238),.6)
+    text_line(output, f"Assumed damping {config['damping_percent']:g}% | Relative strength {config['strength']:g}x | Display gain {metadata['modal_gain']:g}x",48)
+    base = 64+ih
+    text_line(output, f"Simulation {time_s:.4f} s | {metadata['playback_slowdown']:.1f}x slower playback | {model['axis'].upper()} axis",base+22)
+    prediction = metadata['_tap_traces']
+    times = np.asarray(prediction['time_s'])
+    peak = max(1e-6,max(abs(v) for tr in prediction['traces'] for v in tr['displacement_source_px']))*1.1
+    left, right, top, bottom = 62,620,base+53,base+145
+    cv2.line(output,(left,(top+bottom)//2),(right,(top+bottom)//2),(35,61,75),1)
+    for trace, color in zip(prediction['traces'],[(54,207,238),(255,201,134)]):
+        values = np.asarray(trace['displacement_source_px'])
+        pts = np.column_stack([left+times/prediction['duration_s']*(right-left),
+                               (top+bottom)/2-values/peak*(bottom-top)/2]).astype(np.int32)
+        cv2.polylines(output,[pts],False,color,1,cv2.LINE_AA)
+    cursor = int(left+time_s/prediction['duration_s']*(right-left))
+    cv2.line(output,(cursor,top),(cursor,bottom),(235,242,247),1)
+    text_line(output,f"+/- {peak:.3g} simulated source px (gain excluded)",base+45,scale=.4)
+    a,b = prediction['traces']
+    text_line(output,f"A: Grid {a['node']+1} (cyan) | B: Grid {b['node']+1} (amber) | 0-{prediction['duration_s']:.4f} simulation s",base+166)
+    text_line(output,'Normalized mass; assumed damping and natural frequency; no force calibration.',base+190)
+    text_line(output,'Operating-response shape approximation; not a measured impulse response.',base+212)
+    text_line(output,f"Source time: {metadata['analysis_fps']:g} analysis fps | {metadata['timing_basis']}",base+233,scale=.38)
+    return output
 
 
 def text_line(image, text, y, color=(185, 205, 219), scale=.46):
@@ -178,8 +225,13 @@ def annotate(rgb, metadata, progress):
     return output
 
 
-def export_frames(video, metadata, rendered=None, response_display=None, field=None, maps=None):
-    if metadata['view'] == 'modal':
+def export_frames(video, metadata, rendered=None, response_display=None, field=None, maps=None, tap_maps=None):
+    if metadata['view'] == 'tap':
+        for i in range(metadata['export_frames']):
+            t = min(i/metadata['export_fps']/metadata['playback_slowdown'],metadata['simulation_duration_s'])
+            rgb = tap_display_frame(video,metadata['tap_model'],tap_maps,metadata['tap_settings'],t,metadata['modal_gain'])
+            yield annotate_tap(rgb,metadata,t)
+    elif metadata['view'] == 'modal':
         for i in range(metadata['export_frames']):
             phase = (metadata['phase_start_deg'] + i/MODAL_FPS*360) % 360
             rgb = modal_display_frame(video, field, maps, phase, metadata['modal_gain'], metadata['sensitivity'])
@@ -204,7 +256,7 @@ def write_mp4(path, frames, metadata):
                '-pix_fmt', 'rgb24', '-s', f'{w}x{h}', '-r', f"{metadata['export_fps']:.12g}",
                '-i', 'pipe:0', '-an', '-c:v', 'libx264', '-preset', 'fast', '-crf', '18',
                '-pix_fmt', 'yuv420p', '-threads', '2', '-movflags', '+faststart',
-               '-metadata', 'comment='+json.dumps(metadata), str(path)]
+               '-metadata', 'comment='+json.dumps({k:v for k,v in metadata.items() if not k.startswith('_')}), str(path)]
     with TemporaryFile() as diagnostics:
         try:
             process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
@@ -239,6 +291,6 @@ def write_mp4(path, frames, metadata):
 
 
 def export_filename(metadata):
-    frequency = (f"{metadata['frequency_hz']:g}" if metadata['view'] == 'modal'
+    frequency = (f"{metadata['frequency_hz']:g}" if metadata['view'] in ('modal','tap')
                  else '-'.join(f'{f:g}' for f in metadata['band_hz']))
     return f"modal-camera-{frequency.replace('.', 'p')}Hz-{metadata['view']}.mp4"

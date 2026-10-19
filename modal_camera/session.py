@@ -1,6 +1,7 @@
 """Validated clip settings and the dependencies of each computed result."""
 import math
 from .spectrum import validate_highpass
+from .virtual_tap import validate_tap_settings
 
 
 def number(value, name):
@@ -109,7 +110,7 @@ def validate_ui(data, frame_count):
     if not isinstance(data,dict):
         raise ValueError('Display settings must be an object.')
     result = dict(data)
-    if result.get('view','heatmap') not in ('amplified','heatmap','isolated','amplitude','phase','modal'):
+    if result.get('view','heatmap') not in ('amplified','heatmap','isolated','amplitude','phase','modal','tap'):
         raise ValueError('Choose a valid response view.')
     for key,default,lower,upper in [('sensitivity',85,0,100),('modal_gain',10,0,20),
                                    ('phase',0,0,360),('frame',0,0,frame_count-1)]:
@@ -118,7 +119,10 @@ def validate_ui(data, frame_count):
             raise ValueError(f'{key} must be between {lower} and {upper}.')
     if result.get('timing_mode','') not in ('','encoded','capture'):
         raise ValueError('Choose encoded playback timing or a capture-rate assumption.')
-    return dict(view=result.get('view','heatmap'),timing_mode=result.get('timing_mode',''),
+    checked = dict(view=result.get('view','heatmap'),timing_mode=result.get('timing_mode',''),
                 timing_confirmed=result.get('timing_confirmed') is True,
                 sensitivity=result['sensitivity'],modal_gain=result['modal_gain'],
                 phase=result['phase'],frame=int(result['frame']))
+    if 'tap' in data:
+        checked['tap'] = validate_tap_settings(data['tap'])
+    return checked

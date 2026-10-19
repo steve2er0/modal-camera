@@ -67,3 +67,15 @@ output,#timeLabel,#modalPhaseLabel{font-family:var(--mono)}
 #status{color:#c9e7f2}
 footer{font-family:var(--mono)}
 @media(prefers-reduced-motion:reduce){button,.filebutton{transition:none}}
+
+/* Virtual tap extends the existing preview; the workspace grid is unchanged. */
+.tap-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:8px 0 16px;flex-wrap:wrap}
+.tap-heading .state-pill{font-size:10px;margin-left:8px}
+.tap-controls{display:grid;grid-template-columns:1fr 1fr minmax(180px,1fr);gap:20px;align-items:center}
+.tap-controls output{float:right;color:var(--cyan);font-variant-numeric:tabular-nums}
+.tap-controls input[type=range]{width:100%;margin:16px 0;accent-color:var(--cyan)}
+.tap-probes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#tapTrace{display:block;width:100%;height:210px;border:1px solid var(--line);border-radius:8px}
+#tapTimeLabel{min-width:145px;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted)}
+#tapSandbox .playback{flex-wrap:wrap}#tapSandbox .playback input{min-width:130px}
+@media(max-width:700px){.tap-controls{grid-template-columns:1fr 1fr;gap:12px}.tap-controls>label:last-child{grid-column:1/-1}.tap-probes{grid-template-columns:1fr;gap:2px}#tapTimeLabel{width:100%;text-align:right}}

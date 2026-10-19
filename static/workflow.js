@@ -15,13 +15,14 @@ function readSettings(){
   return {frequency,bandwidth,linked:$('linkedBand').checked,low:finiteInput('low','Band low edge'),high:finiteInput('high','Band high edge'),gain,
     axis:$('axis').value,points,roi,reference:$('fieldReference').value,reference_last:$('cameraReference').checked,calibration,spectrum_highpass_hz,spectrum_source:psdSource,spectrum_point:psdPoint,spectrum_region:psdRegion};
 }
-function readDisplay(){return {view:$('responseView').value,sensitivity:Number($('sensitivity').value),modal_gain:Number($('modalGain').value),phase:Number($('modalPhase').value),frame,timing_mode:$('timingMode').value,timing_confirmed:timingConfirmed};}
+function readDisplay(){return {view:$('responseView').value,sensitivity:Number($('sensitivity').value),modal_gain:Number($('modalGain').value),phase:Number($('modalPhase').value),frame,timing_mode:$('timingMode').value,timing_confirmed:timingConfirmed,tap:readTapSettings()};}
 function applySettings(settings,ui){
+  applyTapDisplay(ui.tap);
   for(const id of ['frequency','bandwidth','low','high','gain','axis'])$(id).value=settings[id];
   $('linkedBand').checked=settings.linked;$('calibration').value=settings.calibration??'';$('cameraReference').checked=settings.reference_last;$('fieldReference').value=settings.reference;
   $('spectrumHighpass').checked=(settings.spectrum_highpass_hz||0)>0;$('highpassCutoff').value=settings.spectrum_highpass_hz||5;
   points=settings.points.map(p=>[...p]);roi=settings.roi?.slice()||null;psdSource=settings.spectrum_source||'auto';psdPoint=settings.spectrum_point?.slice()||null;psdRegion=settings.spectrum_region?.slice()||null;psdDraftRegion=null;psdSampling=null;psdSamplingIdentity=null;
-  $('responseView').value=ui.view;$('sensitivity').value=ui.sensitivity;$('modalGain').value=ui.modal_gain;$('modalPhase').value=ui.phase;
+  $('responseView').value=ui.view;if(ui.view==='tap')$('exportKind').value='tap';$('sensitivity').value=ui.sensitivity;$('modalGain').value=ui.modal_gain;$('modalPhase').value=ui.phase;
   $('modalPhaseLabel').textContent=Math.round(ui.phase)+'°';$('modalGainValue').textContent=ui.modal_gain+'×';
   $('timingMode').value=ui.timing_mode;timingConfirmed=ui.timing_confirmed;
   $('captureFps').value=clip.metadata.timing_basis.includes('user-assumed')?clip.metadata.fps:'';$('sampleTiming').checked=clip.metadata.timing_basis.includes('user-assumed');
@@ -69,10 +70,11 @@ function showTimebase(){
 }
 function updateExports(){
   const ready=!!clip&&!busy&&!dirty,band=ready&&!!renderKey&&!!responsePixels,field=ready&&!!spatialField;
-  const available={heatmap:band,isolated:band,modal:field&&spatialField.reference.phase_deg!==null,analysis:ready&&!!(analysis||spatialField||displacementSpectrum),samples:field,traces:ready&&!!analysis};
+  const tap=field&&!!tapData&&tapData.key===spatialField.key;
+  const available={tap,'tap-traces':tap,heatmap:band,isolated:band,modal:field&&spatialField.reference.phase_deg!==null,analysis:ready&&!!(analysis||spatialField||displacementSpectrum),samples:field,traces:ready&&!!analysis};
   for(const option of $('exportKind').options)option.disabled=!available[option.value];
   $('exportKind').disabled=busy||!Object.values(available).some(Boolean);$('exportResponse').disabled=!available[$('exportKind').value];
-  $('exportHelp').textContent=renderInfo||spatialField?`Exports capture the applied frequency, timing, sensitivity and display gain. Animation contains four slowed cycles.`:displacementSpectrum?'PSD is available in Analysis JSON. Analyze the response to enable video exports.':'Analyze response to enable exports. No download will replace this workspace.';
+  $('exportHelp').textContent=['tap','tap-traces'].includes($('exportKind').value)?'Virtual tap exports include assumed damping, relative strength, simulated point traces and timing; no force calibration.':renderInfo||spatialField?`Exports capture the applied frequency, timing, sensitivity and display gain. Animation contains four slowed cycles.`:displacementSpectrum?'PSD is available in Analysis JSON. Analyze the response to enable video exports.':'Analyze response to enable exports. No download will replace this workspace.';
 }
 function updateUI(){
   showTimebase();syncRoiInputs();$('targetHelp').textContent=$('linkedBand').checked?'Band follows target ± half the bandwidth.':'Independent band; target sets the displacement fit.';$('low').readOnly=$('linkedBand').checked;$('high').readOnly=$('linkedBand').checked;$('bandwidth').disabled=busy||!$('linkedBand').checked;
@@ -81,6 +83,7 @@ function updateUI(){
   $('spectrumHighpass').disabled=busy||!clip||!timingConfirmed;$('highpassCutoff').disabled=busy||!$('spectrumHighpass').checked;
   if(clip){$('highpassCutoff').min=2*clip.metadata.resolution_hz;$('highpassCutoff').max=clip.metadata.nyquist;}
   $('play').disabled=busy||!clip;$('modalPlay').disabled=busy||!spatialField||spatialField.reference.phase_deg===null;
+  $('tapPlay').disabled=busy||!spatialField;$('tapReset').disabled=busy||!tapData;$('tapTime').disabled=busy||!tapData;
   const complete=!!renderKey&&!!spatialField;
   $('resultState').textContent=busy?'Working…':needsUpdate?'Needs update':complete?'Ready':renderKey?'Partial result':'Not analyzed';
   $('resultState').className='state-pill '+(complete&&!dirty?'ready':'pending');
@@ -104,7 +107,7 @@ async function installInBrowser(data,{restored=false}={}){
   if(data.render_info&&renderKey)await loadResponse({...data.render_info,key:renderKey});
   if(data.field&&data.field_key){spatialField={...data.field,key:data.field_key};referenceImage=await getImage(frameUrl('original',0));showFieldSummary();}
   notes('inputWarnings',m.warnings);notes('renderWarnings',data.render_info?.warnings||[]);drawResults();drawSpectrum();drawTrace();
-  await showFrame(frame);loaded=true;updateUI();if($('responseView').value==='modal'&&spatialField)await refreshModal();
+  await showFrame(frame);loaded=true;updateUI();if($('responseView').value==='modal'&&spatialField)await refreshModal();if($('responseView').value==='tap'&&spatialField)await prepareTap();
   status(restored?'Active session recovered. Settings and available results are restored.':'Video ready. Confirm timing, choose your target, and analyze the response.');
 }
 async function confirmTiming(){
@@ -141,6 +144,7 @@ async function analyzeWorkflow(){
   if(points.length){status('2 of 3 · Fitting selected original points…');await runAnalysis();if(await stopAtBoundary())return;}
   status('3 of 3 · Measuring local displacement and phase…');await runField();if(await stopAtBoundary())return;
   if(!fieldViews.has($('responseView').value))$('responseView').value='heatmap';
+  if($('responseView').value==='tap')await prepareTap();
   needsUpdate=false;draftSerial++;dirty=true;await flushSettings();
   status(spatialField.accepted_nodes?`Response ready at ${spatialField.frequency_hz.toFixed(3)} Hz. Explore the views or export a result.`:'Band views ready. No patches passed displacement fitting; inspect texture and tracking under Advanced.');updateUI();
 }
@@ -165,8 +169,8 @@ $('videoFile').onchange=()=>{const file=$('videoFile').files[0];$('videoFile').v
 $('exportKind').onchange=updateExports;
 $('exportResponse').onclick=()=>task('Preparing your export…',async()=>{
   clearVideoDownload();await flushSettings();const kind=$('exportKind').value;let result;
-  if(['heatmap','isolated','modal'].includes(kind)){result=await api('/api/export-video?prepare=1',{id:clip.id,revision,view:kind,key:kind==='modal'?spatialField?.key:renderKey,sensitivity:Number($('sensitivity').value),modal_gain:Number($('modalGain').value),phase_start:Number($('modalPhase').value)});}
-  else result=await api('/api/export-data',{id:clip.id,revision,kind});
+  if(['heatmap','isolated','modal','tap'].includes(kind)){result=await api('/api/export-video?prepare=1',{id:clip.id,revision,view:kind,key:['modal','tap'].includes(kind)?spatialField?.key:renderKey,tap:readTapSettings(),sensitivity:Number($('sensitivity').value),modal_gain:Number($('modalGain').value),phase_start:Number($('modalPhase').value)});}
+  else result=await api('/api/export-data',{id:clip.id,revision,kind,key:spatialField?.key,tap:readTapSettings()});
   const link=$('videoDownload');link.href=result.url;link.download=result.filename;link.textContent=`Save ${result.filename}`;link.hidden=false;link.click();status('Export ready. Use the Save link if your browser does not start the download.');
 });
 window.addEventListener('pagehide',()=>{if(!clip||!loaded)return;try{fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:clip.id,revision,settings:readSettings(),ui:readDisplay(),invalidate:forceInvalidate}),keepalive:true}).catch(()=>{});}catch{}});

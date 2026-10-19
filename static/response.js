@@ -1,10 +1,11 @@
 'use strict';
 let spatialField=null,renderInfo=null,responsePixels=null,heatLayer=null,maskLayer=null;
 let referenceImage=null,modalImage=null,modalPlaying=false,modalRequest=0,modalFetching=false,modalTimer=null,hoverNode=null;
-const fieldViews=new Set(['amplitude','phase','modal']);
-const viewNames={amplified:'Amplified',heatmap:'Frequency heatmap',isolated:'Isolated response',amplitude:'Displacement amplitude',phase:'Relative phase',modal:'Fitted response animation'};
+const fieldViews=new Set(['amplitude','phase','modal','tap']);
+const viewNames={amplified:'Amplified',heatmap:'Frequency heatmap',isolated:'Isolated response',amplitude:'Displacement amplitude',phase:'Relative phase',modal:'Fitted response animation',tap:'Virtual tap · assumed model'};
 function pauseModal(){modalPlaying=false;$('modalPlay').textContent='▶ Animate';}
 function invalidateField(){
+  resetTap();
   pauseModal();modalRequest++;spatialField=null;hoverNode=null;referenceImage?.close();referenceImage=null;modalImage?.close();modalImage=null;
   $('fieldLabel').textContent='NO CURRENT SPATIAL MAP';$('fieldSummary').textContent='Analyze response to update local displacement and phase.';$('sampleSelect').replaceChildren(new Option('Choose a sample…',''));
   notes('fieldWarnings',[]);$('responseInspect').hidden=true;updateResponseHelp();
@@ -43,8 +44,8 @@ function updateExportLinks(){updateExports();}
 function updateVideoExportButtons(){updateExports();}
 function updateResponseHelp(){
   const view=$('responseView').value,field=fieldViews.has(view);$('visualizationTitle').textContent=viewNames[view];
-  $('sensitivityValue').textContent=$('sensitivity').value+'%';$('responseLegend').hidden=view==='amplified'||(field?!spatialField:!renderInfo);$('sensitivityControl').hidden=view==='amplified'||(field?!spatialField:!renderInfo);$('modalGainControl').hidden=view!=='modal';$('sampleInspector').hidden=!field||!spatialField;for(const button of document.querySelectorAll('[data-view]'))button.setAttribute('aria-pressed',String(button.dataset.view===view));
-  $('videoPlayback').hidden=view==='modal';$('modalPlayback').hidden=view!=='modal';
+  $('sensitivityValue').textContent=$('sensitivity').value+'%';$('responseLegend').hidden=view==='amplified'||(field?!spatialField:!renderInfo);$('sensitivityControl').hidden=view==='amplified'||(field?!spatialField:!renderInfo);$('modalGainControl').hidden=!['modal','tap'].includes(view);$('tapSandbox').hidden=view!=='tap';if(view==='tap'){$('responseLegend').hidden=true;$('sensitivityControl').hidden=true;}$('sampleInspector').hidden=view==='tap'||!field||!spatialField;for(const button of document.querySelectorAll('[data-view]'))button.setAttribute('aria-pressed',String(button.dataset.view===view));
+  $('videoPlayback').hidden=['modal','tap'].includes(view);$('modalPlayback').hidden=view!=='modal';
   $('responseRamp').className='response-ramp'+(view==='phase'?' phase':view==='modal'?' signed':'');
   if(field){
     $('renderLabel').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} Hz · ${spatialField.axis.toUpperCase()} fit`:'ANALYZE RESPONSE';
@@ -58,12 +59,14 @@ function updateResponseHelp(){
     $('responseScale').textContent=`0–${reference.toFixed(3)} luminance levels RMS; show above ${(reference*sensitivityThreshold()).toFixed(3)}. Colors saturate at the 99th percentile.`;
     $('responseHelp').textContent=view==='amplified'?'Magnified images are visualization only. Measurements use original frames.':`${renderInfo?renderInfo.low.toFixed(2)+'–'+renderInfo.high.toFixed(2)+' Hz · ':''}Stable mask from original band-response RMS, independent of gain. Brightness variation is texture-dependent and can include lighting flicker; dark does not prove stationary.`;
   }
+  if(view==='tap'){$('renderLabel').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} Hz · ASSUMED MODEL`:'ANALYZE RESPONSE';$('responseHelp').textContent='One standing-mode approximation with assumed damping and relative impulse scaling. Simulated source-pixel motion is not a measured impulse response.';}
   updateExports();if(hoverNode!==null&&spatialField)inspectNode(hoverNode);
 }
 function centeredMessage(ctx,c,text){ctx.fillStyle='#101820dc';ctx.fillRect(0,c.height/2-22,c.width,44);ctx.fillStyle='#c0d1df';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(text,c.width/2,c.height/2+4);ctx.textAlign='left';}
 function drawResponse(ctx,c){
   const view=$('responseView').value;
   if(view==='amplified')return false;
+  if(view==='tap')return drawTap(ctx,c);
   if(view==='heatmap'||view==='isolated'){
     if(!heatLayer||!renderKey){centeredMessage(ctx,c,'Analyze response to reveal responding regions');return true;}
     ctx.fillStyle='#080d13';ctx.fillRect(0,0,c.width,c.height);
@@ -113,7 +116,7 @@ function inspectNode(index){
   $('responseInspect').textContent=`Grid ${index+1} (${node.x.toFixed(0)}, ${node.y.toFixed(0)} analysis px) · ${spatialField.axis.toUpperCase()} peak ${fit?amplitudeText(fit.amplitude_peak_px):'withheld'} · relative phase ${relative===null?'unavailable':relative.toFixed(1)+'°'} · accepted ${(node.valid_fraction*100).toFixed(1)}%${fit?' · fit residual '+amplitudeText(fit.rms_residual_px)+' · harmonic power fraction '+(fit.harmonic_power_fraction*100).toFixed(1)+'%':''}. ${node.warnings.join(' ')}`;
 }
 $('amplified').onpointermove=e=>{
-  if(!spatialField||!fieldViews.has($('responseView').value))return;
+  if(!spatialField||!fieldViews.has($('responseView').value)||$('responseView').value==='tap')return;
   const c=$('amplified'),rect=c.getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width*c.width,y=(e.clientY-rect.top)/rect.height*c.height;
   let nearest=null,distance=spatialField.grid.step*.75;
   spatialField.nodes.forEach((p,i)=>{const d=Math.hypot(p.x-x,p.y-y);if(d<distance){nearest=i;distance=d;}});
@@ -123,7 +126,8 @@ $('amplified').onclick=$('amplified').onpointermove;
 function selectView(view){
   pause();clearVideoDownload();$('responseView').value=view;hoverNode=null;$('responseInspect').hidden=true;updateResponseHelp();drawVideos();
   if(view==='modal'&&spatialField)refreshModal().catch(showError);
-  $('exportKind').value=['heatmap','isolated','modal'].includes(view)?view:fieldViews.has(view)?'samples':'heatmap';
+  if(view==='tap'&&spatialField)task('Preparing the assumed virtual tap model…',prepareTap);
+  $('exportKind').value=['heatmap','isolated','modal','tap'].includes(view)?view:fieldViews.has(view)?'samples':'heatmap';
   saveDisplay();updateExports();
 }
 $('responseView').onchange=()=>selectView($('responseView').value);
@@ -156,7 +160,7 @@ async function refreshModal(){
 }
 function requestModal(){clearTimeout(modalTimer);modalTimer=setTimeout(()=>refreshModal().catch(showError),45);}
 $('modalPhase').oninput=()=>{pauseModal();$('modalPhaseLabel').textContent=Math.round(Number($('modalPhase').value))+'°';drawVideos();requestModal();saveDisplay();};
-$('modalGain').oninput=()=>{$('modalGainValue').textContent=$('modalGain').value+'×';updateExports();drawVideos();requestModal();clearVideoDownload();saveDisplay();saveDisplay();};
+$('modalGain').oninput=()=>{$('modalGainValue').textContent=$('modalGain').value+'×';updateExports();drawVideos();if($('responseView').value==='tap')refreshTapFrame().catch(showError);else requestModal();clearVideoDownload();saveDisplay();};
 $('modalPlay').onclick=()=>{
   if(modalPlaying){pauseModal();saveDisplay();return;}
   if(!spatialField||spatialField.reference.phase_deg===null){showError(new Error('Build a displacement map with a usable phase reference first.'));return;}

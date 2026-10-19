@@ -1,0 +1,53 @@
+{
+  "tests": "131 passed in 69.88s (0:01:09)",
+  "real_clip": "95Hz_AlPlate_wGrid_frame_order_30fps.avi",
+  "frequency_hz": 94.872,
+  "standing_phase_fraction": 0.9844729345217635,
+  "supported_image_fraction": 0.09058562189152529,
+  "mp4": {
+    "frames": 601,
+    "fps": 30.0,
+    "width": 640,
+    "height": 664,
+    "simulation_duration_s": 0.42162071000927565,
+    "playback_slowdown": 47.436,
+    "settings": {
+      "damping_percent": 1.5,
+      "strength": 1.5,
+      "direction": 1.0,
+      "cycles": 40.0,
+      "display_cps": 2.0,
+      "cursor_cycle": 0.0,
+      "tap_node": 41,
+      "probe_a": 41,
+      "probe_b": 37,
+      "participation": -0.7569261428822833
+    },
+    "bytes": 470415,
+    "all_frames_decoded": true,
+    "embedded_assumptions": true
+  },
+  "browser_checks": [
+    "slider updates",
+    "tap location selector",
+    "probe selector",
+    "play/pause",
+    "refresh recovery",
+    "export button and prepared Save link",
+    "direct response-image tap",
+    "simulated trace CSV export button and download",
+    "Advanced contains model assumptions and normalized matrices",
+    "final port 8766 play and reset",
+    "original side-by-side layout retained",
+    "JavaScript syntax checks"
+  ],
+  "interpretation": "Assumed single standing mode from an observed operating response; not an identified eigenmode or force-calibrated twin",
+  "final_app": "http://127.0.0.1:8766/",
+  "original_settings_restored": true,
+  "field_and_band_recomputed": true,
+  "real_clip_csv": {
+    "rows": 961,
+    "opposite_sign_trace_correlation": -1.0,
+    "download_verified": true
+  }
+}

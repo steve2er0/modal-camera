@@ -25,7 +25,7 @@ async function task(message,work){
   try{await work();}catch(e){showError(e);}finally{busy=false;document.body.classList.remove('busy');controls.forEach((control,i)=>control.disabled=disabled[i]);$('cancelProcessing').hidden=true;updateUI();}
 }
 function notes(id,values){$(id).replaceChildren(...values.map(v=>{const p=document.createElement('p');p.textContent=v;return p;}));}
-function pause(){playing=false;$('play').textContent='▶ Play';pauseModal();}
+function pause(){playing=false;$('play').textContent='▶ Play';pauseModal();pauseTap();}
 function frameUrl(view,index){return `/api/frame/${clip.id}/${index}?view=${view}${view==='amplified'?'&key='+renderKey:''}`;}
 async function getImage(url){const response=await fetch(url);if(!response.ok){const error=await response.json();throw new Error(error.error);}return createImageBitmap(await response.blob());}
 async function showFrame(index){

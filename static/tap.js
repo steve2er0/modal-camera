@@ -1,0 +1,104 @@
+'use strict';
+let tapData=null,tapImage=null,tapPlaying=false,tapTimer=null,tapRequest=0,tapFrameRequest=0,tapPlaySerial=0;
+let tapSelection={tap_node:null,probe_a:null,probe_b:null};
+function pauseTap(){tapPlaying=false;tapPlaySerial++;$('tapPlay').textContent=Number($('tapTime').value)>0?'▶ Resume':'▶ Tap';}
+function resetTap(){
+  pauseTap();clearTimeout(tapTimer);tapRequest++;tapFrameRequest++;tapData=null;tapImage?.close();tapImage=null;
+  tapSelection={tap_node:null,probe_a:null,probe_b:null};$('tapTime').value='0';
+  for(const id of ['tapNode','tapProbeA','tapProbeB'])$(id).replaceChildren(new Option('Choose a usable sample…',''));
+  $('tapSummary').textContent='Choose Virtual tap after analyzing the response.';
+  $('tapModelSummary').textContent='A one-mode approximation will be built from the selected original displacement response.';notes('tapAssumptions',[]);drawTapTrace();
+}
+function readTapSettings(){return {...tapSelection,damping_percent:finiteInput('tapDamping','Damping'),strength:finiteInput('tapStrength','Tap strength'),direction:Number($('tapDirection').value),cycles:finiteInput('tapCycles','Simulation cycles'),display_cps:finiteInput('tapDisplayCps','Display cycles per second'),cursor_cycle:Number($('tapTime').value)};}
+function applyTapDisplay(ui={}){
+  for(const [id,key,fallback] of [['tapDamping','damping_percent',1],['tapStrength','strength',1],['tapDirection','direction',1],['tapCycles','cycles',40],['tapDisplayCps','display_cps',2],['tapTime','cursor_cycle',0]])$(id).value=ui[key]??fallback;
+  $('tapTime').max=ui.cycles??40;tapSelection={tap_node:ui.tap_node??null,probe_a:ui.probe_a??null,probe_b:ui.probe_b??null};pauseTap();updateTapLabels();
+}
+function updateTapLabels(){
+  if(!tapPlaying){const cycle=Number($('tapTime').value);$('tapPlay').textContent=cycle>=Number($('tapCycles').value)?'↻ Replay':cycle>0?'▶ Resume':'▶ Tap';}
+  $('tapDampingValue').textContent=Number($('tapDamping').value).toFixed(1)+'%';$('tapStrengthValue').textContent=Number($('tapStrength').value).toFixed(1)+'×';
+  const f=tapData?.model.frequency_hz||spatialField?.frequency_hz||Number($('frequency').value);
+  $('tapTimeLabel').textContent=(Number($('tapTime').value)/f).toFixed(4)+' simulation s';
+  $('tapTiming').textContent=Number.isFinite(f)?`${f.toFixed(3)} Hz assumed · ${(f/Number($('tapDisplayCps').value)).toFixed(1)}× slower playback`:'';
+}
+function populateTapSelectors(){
+  for(const [id,key] of [['tapNode','tap_node'],['tapProbeA','probe_a'],['tapProbeB','probe_b']]){
+    $(id).replaceChildren(...tapData.model.nodes.filter(n=>n.shape!==null).map(n=>new Option(`Grid ${n.index+1} (${n.x}, ${n.y})`,String(n.index))));$(id).value=tapSelection[key];
+  }
+}
+async function prepareTap(){
+  if(!spatialField||$('responseView').value!=='tap')return;
+  const serial=++tapRequest,e=epoch,key=spatialField.key;
+  await flushSettings();
+  const data=await api('/api/tap',{id:clip.id,revision,key,tap:readTapSettings()});
+  if(serial!==tapRequest||e!==epoch||key!==spatialField?.key||$('responseView').value!=='tap')return;
+  tapData=data;tapSelection={tap_node:data.settings.tap_node,probe_a:data.settings.probe_a,probe_b:data.settings.probe_b};
+  $('tapTime').max=data.settings.cycles;$('tapTime').value=data.settings.cursor_cycle;populateTapSelectors();updateTapLabels();
+  const m=data.model,c=data.settings;
+  $('tapSummary').textContent=`Tap: Grid ${c.tap_node+1} · signed participation ${c.participation.toFixed(3)} · envelope reaches 10% in ${data.seconds_to_ten_percent.toFixed(3)} simulation s. ${Math.abs(c.participation)<.05?'This location couples weakly to the retained shape. ':''}Changing location changes participation, not bending shape.`;
+  $('tapModelSummary').textContent=`Standing projection retains ${(100*m.standing_phase_fraction).toFixed(1)}% of selected-axis complex-response energy; descriptive, not mode confidence. ${(100*m.interpolated_support_fraction).toFixed(1)}% image warp support. Normalized M = 1, C = ${data.normalized_matrices.C[0][0].toPrecision(5)}, K = ${data.normalized_matrices.K[0][0].toPrecision(6)}. ${m.standing_phase_fraction<.8?'Substantial quadrature motion is omitted by this one-standing-mode approximation.':''}`;
+  notes('tapAssumptions',m.assumptions);await refreshTapFrame();drawTapTrace();saveDisplay();updateUI();status(`Virtual tap ready at ${m.frequency_hz.toFixed(3)} Hz. Damping and impulse strength are assumed.`);
+}
+async function refreshTapFrame(){
+  if(!tapData||$('responseView').value!=='tap')return;
+  const data=tapData,seq=++tapFrameRequest,e=epoch,time=Number($('tapTime').value)/data.model.frequency_hz;
+  const params=new URLSearchParams({view:'tap',key:data.key,revision,time,gain:$('modalGain').value});
+  for(const key of ['damping_percent','strength','direction','cycles','display_cps','tap_node','probe_a','probe_b'])params.set(key,data.settings[key]);
+  const bitmap=await getImage(`/api/frame/${clip.id}/0?${params}`);
+  if(seq!==tapFrameRequest||e!==epoch||tapData!==data||$('responseView').value!=='tap'){bitmap.close();return;}
+  tapImage?.close();tapImage=bitmap;drawVideos();drawTapTrace();updateTapLabels();
+}
+function scheduleTap(){
+  pauseTap();clearVideoDownload();clearTimeout(tapTimer);tapRequest++;tapFrameRequest++;tapData=null;tapImage?.close();tapImage=null;$('tapTime').value=0;
+  updateTapLabels();$('tapSummary').textContent='Updating the assumed model…';drawTapTrace();drawVideos();saveDisplay();updateExports();
+  if($('responseView').value==='tap')tapTimer=setTimeout(()=>prepareTap().catch(showError),180);
+}
+for(const id of ['tapDamping','tapStrength','tapCycles','tapDisplayCps'])$(id).addEventListener('input',scheduleTap);
+$('tapDirection').onchange=scheduleTap;
+for(const [id,key] of [['tapNode','tap_node'],['tapProbeA','probe_a'],['tapProbeB','probe_b']])$(id).onchange=()=>{tapSelection[key]=$(id).value===''?null:Number($(id).value);if(key==='tap_node'){tapSelection.probe_a=tapSelection.tap_node;if(tapSelection.probe_b===tapSelection.probe_a)tapSelection.probe_b=null;}scheduleTap();};
+$('tapTime').oninput=()=>{pauseTap();updateTapLabels();refreshTapFrame().catch(showError);saveDisplay();};
+$('tapReset').onclick=()=>{pauseTap();$('tapTime').value=0;updateTapLabels();refreshTapFrame().catch(showError);saveDisplay();status('Virtual tap reset. Press Tap to run the assumed model.');};
+$('tapPlay').onclick=async()=>{
+  if(tapPlaying){pauseTap();saveDisplay();status('Virtual tap paused.');return;}
+  if(!tapData)await task('Preparing the assumed virtual tap model…',prepareTap);
+  if(!tapData)return;
+  pause();const data=tapData;if(Number($('tapTime').value)>=data.settings.cycles)$('tapTime').value=0;
+  tapPlaying=true;const serial=++tapPlaySerial,initial=Number($('tapTime').value),start=performance.now();let last=0,fetching=false;
+  $('tapPlay').textContent='Ⅱ Pause';status('Virtual tap running. Point traces show simulated source-pixel motion.');
+  async function tick(now){
+    if(!tapPlaying||serial!==tapPlaySerial)return;
+    if(!fetching&&now-last>70){last=now;fetching=true;$('tapTime').value=Math.min(data.settings.cycles,initial+(now-start)/1000*data.settings.display_cps);
+      try{await refreshTapFrame();}catch(e){pauseTap();showError(e);}finally{fetching=false;}
+      if(Number($('tapTime').value)>=data.settings.cycles){pauseTap();$('tapPlay').textContent='↻ Replay';saveDisplay();status('Virtual tap finished. Replay or adjust the assumed damping and strength.');return;}}
+    if(tapPlaying&&serial===tapPlaySerial)requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+};
+function drawTap(ctx,c){
+  if(tapImage)ctx.drawImage(tapImage,0,0,c.width,c.height);
+  else{if(referenceImage)ctx.drawImage(referenceImage,0,0,c.width,c.height);centeredMessage(ctx,c,tapData?'Preparing virtual tap frame…':'Preparing assumed virtual tap model…');}
+  return true;
+}
+function drawTapTrace(){
+  const c=$('tapTrace');c.width=Math.max(280,Math.round(c.clientWidth||1100));
+  const {ctx,W,H,L,R,T,B,xw,yh}=plotBase(c,'Simulation time / s','Simulated source px');
+  if(!tapData)return;
+  const data=tapData,duration=data.duration_s;
+  const peak=Math.max(1e-6,...data.traces.flatMap(tr=>tr.displacement_source_px.map(Math.abs)))*1.1;
+  const x=t=>L+t/duration*xw,y=v=>T+yh/2-v/(2*peak)*yh;
+  for(const v of [-peak,0,peak]){ctx.fillStyle=plotColor('--plot-label');ctx.fillText(v.toPrecision(2),3,y(v)+3);ctx.strokeStyle=plotColor('--plot-grid');ctx.beginPath();ctx.moveTo(L,y(v));ctx.lineTo(W-R,y(v));ctx.stroke();}
+  for(let i=0;i<=4;i++){ctx.fillStyle=plotColor('--plot-label');ctx.fillText((i*duration/4).toFixed(3),x(i*duration/4)-15,H-B+17);}
+  data.traces.forEach((trace,j)=>{ctx.strokeStyle=j?'#ffc986':'#36cfee';ctx.lineWidth=1.5;ctx.beginPath();trace.displacement_source_px.forEach((v,i)=>{i?ctx.lineTo(x(data.time_s[i]),y(v)):ctx.moveTo(x(data.time_s[i]),y(v));});ctx.stroke();});
+  ctx.strokeStyle='#e9f0f3';ctx.beginPath();ctx.moveTo(x(Number($('tapTime').value)/data.model.frequency_hz),T);ctx.lineTo(x(Number($('tapTime').value)/data.model.frequency_hz),H-B);ctx.stroke();
+}
+const originalResponseClick=$('amplified').onclick;
+$('amplified').onclick=e=>{
+  if($('responseView').value!=='tap'){originalResponseClick(e);return;}
+  if(!tapData||busy)return;
+  const c=$('amplified'),r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*c.width,y=(e.clientY-r.top)/r.height*c.height;
+  let nearest=null,distance=spatialField.grid.step*.75;
+  for(const n of tapData.model.nodes){const d=Math.hypot(n.x-x,n.y-y);if(n.shape!==null&&d<distance){nearest=n;distance=d;}}
+  if(!nearest){$('tapSummary').textContent='Choose a visible usable dot. Unsupported locations are not extrapolated.';return;}
+  tapSelection.tap_node=nearest.index;tapSelection.probe_a=nearest.index;if(tapSelection.probe_b===nearest.index)tapSelection.probe_b=null;scheduleTap();
+};
+window.addEventListener('resize',drawTapTrace);
