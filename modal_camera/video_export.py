@@ -106,12 +106,21 @@ def export_metadata(video, view, sensitivity, modal_gain, phase_start, render_in
     if view == 'tap':
         config, model = tap['settings'], tap['model']
         count = math.ceil(tap['display_duration_s']*fps)+1
+        if count > 5401:
+            raise ValueError('This slowed export exceeds three minutes. Shorten the simulation under Advanced or enable fewer high modes.')
+        # Keep the MP4 comment compact; dense shapes and thumbnails are not
+        # required to reproduce the model from its complete assumptions.
+        export_model = model
+        if model.get('kind') == 'plate':
+            export_model = {k:v for k,v in model.items() if k != 'nodes'}
+            export_model['modes'] = [{k:v for k,v in mode.items() if k != 'thumbnail'} for mode in model['modes']]
         result.update(frequency_hz=model['frequency_hz'], axis=model['axis'], modal_gain=modal_gain,
                       export_frames=count, export_duration_s=count/fps,
-                      simulation_duration_s=tap['duration_s'], display_cycles_per_second=config['display_cps'],
-                      playback_slowdown=model['frequency_hz']/config['display_cps'],
-                      interpretation=model['interpretation'], tap_settings=config, tap_model=model,
-                      normalized_matrices=tap['normalized_matrices'], _tap_traces=tap)
+                      simulation_duration_s=tap['duration_s'], display_cycles_per_second=config.get('effective_display_cps', config['display_cps']),
+                      requested_display_cycles_per_second=config['display_cps'],
+                      playback_slowdown=tap.get('playback_slowdown', model['frequency_hz']/config['display_cps']),
+                      interpretation=model['interpretation'], tap_settings=config, tap_model=export_model,
+                      normalized_matrices=tap['normalized_matrices'], _tap_traces=tap, _tap_model=model)
     elif modal:
         result.update(frequency_hz=field['frequency_hz'], axis=field['axis'], modal_gain=modal_gain,
                       phase_start_deg=phase_start % 360, display_cycles=MODAL_CYCLES,
@@ -136,8 +145,14 @@ def annotate_tap(rgb, metadata, time_s):
     output = np.full((height,640,3),(8,17,24),np.uint8)
     output[64:64+ih,(640-iw)//2:(640-iw)//2+iw] = cv2.resize(rgb,(iw,ih))
     config, model = metadata['tap_settings'], metadata['tap_model']
-    text_line(output, f"VIRTUAL TAP | {model['frequency_hz']:.3f} Hz | ASSUMED MODEL", 26,(54,207,238),.6)
-    text_line(output, f"Assumed damping {config['damping_percent']:g}% | Relative strength {config['strength']:g}x | Display gain {metadata['modal_gain']:g}x",48)
+    predicted = model.get('kind') == 'plate'
+    title = 'PREDICTED MODE' if predicted and config['motion'] == 'mode' else 'PREDICTED COMBINED TAP' if predicted else 'VIRTUAL TAP'
+    frequency = config.get('clock_hz', model['frequency_hz'])
+    text_line(output, f"{title} | {frequency:.3f} Hz | ASSUMED MODEL", 26,(54,207,238),.6)
+    if predicted and config['motion'] == 'mode':
+        text_line(output, f"Continuous shape animation | Relative amplitude {config['strength']:g}x | Display gain {metadata['modal_gain']:g}x",48)
+    else:
+        text_line(output, f"Assumed damping {config['damping_percent']:g}% | Relative strength {config['strength']:g}x | Display gain {metadata['modal_gain']:g}x",48)
     base = 64+ih
     text_line(output, f"Simulation {time_s:.4f} s | {metadata['playback_slowdown']:.1f}x slower playback | {model['axis'].upper()} axis",base+22)
     prediction = metadata['_tap_traces']
@@ -156,7 +171,11 @@ def annotate_tap(rgb, metadata, time_s):
     a,b = prediction['traces']
     text_line(output,f"A: Grid {a['node']+1} (cyan) | B: Grid {b['node']+1} (amber) | 0-{prediction['duration_s']:.4f} simulation s",base+166)
     text_line(output,'Normalized mass; assumed damping and natural frequency; no force calibration.',base+190)
-    text_line(output,'Operating-response shape approximation; not a measured impulse response.',base+212)
+    if predicted:
+        frequencies = ', '.join(f"{model['modes'][i]['frequency_hz']:.1f}" for i in config['active_modes'])
+        text_line(output, f"Model modes: {frequencies} Hz | Not measured higher modes.", base+212)
+    else:
+        text_line(output,'Operating-response shape approximation; not a measured impulse response.',base+212)
     text_line(output,f"Source time: {metadata['analysis_fps']:g} analysis fps | {metadata['timing_basis']}",base+233,scale=.38)
     return output
 
@@ -229,7 +248,7 @@ def export_frames(video, metadata, rendered=None, response_display=None, field=N
     if metadata['view'] == 'tap':
         for i in range(metadata['export_frames']):
             t = min(i/metadata['export_fps']/metadata['playback_slowdown'],metadata['simulation_duration_s'])
-            rgb = tap_display_frame(video,metadata['tap_model'],tap_maps,metadata['tap_settings'],t,metadata['modal_gain'])
+            rgb = tap_display_frame(video,metadata.get('_tap_model',metadata['tap_model']),tap_maps,metadata['tap_settings'],t,metadata['modal_gain'])
             yield annotate_tap(rgb,metadata,t)
     elif metadata['view'] == 'modal':
         for i in range(metadata['export_frames']):

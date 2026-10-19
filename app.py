@@ -9,6 +9,7 @@ import io
 import json
 import math
 import secrets
+import hashlib
 
 import cv2
 from flask import Flask, jsonify, render_template, request, Response, send_file
@@ -22,6 +23,7 @@ from modal_camera.sampling import sampling_plan, sampling_payload
 from modal_camera.video_export import export_metadata, export_frames, write_mp4, export_filename
 from modal_camera.session import defaults, validate_settings, validate_ui, signature
 from modal_camera.virtual_tap import build_model, simulate, configure, tap_display_frame
+from modal_camera.plate_modes import build_plate_model, validate_plate_settings
 
 ROOT = Path(__file__).resolve().parent
 app = Flask(__name__)
@@ -344,12 +346,22 @@ def spatial_field():
         return jsonify(key=state['field_key'],revision=state['revision'],**result)
 
 
-def current_tap(key):
+def current_tap(key, options=None):
     if state.get('field') is None or key != state.get('field_key'):
         raise ValueError('Virtual tap response is no longer current. Analyze the response first.')
-    if state.get('tap_model') is None or state.get('tap_field_key') != key:
-        model, maps = build_model(state['video'],state['field'])
-        state.update(tap_model=model,tap_maps=maps,tap_field_key=key)
+    options = options or {}
+    if not isinstance(options, dict):
+        raise ValueError('Virtual tap settings must be an object.')
+    source = options.get('model_source', 'observed')
+    if source not in ('observed', 'plate'):
+        raise ValueError('Choose the observed response or predicted plate model.')
+    assumptions = validate_plate_settings(options.get('plate', {})) if source == 'plate' else None
+    cache_key = hashlib.sha256(json.dumps([key, source, assumptions], sort_keys=True).encode()).hexdigest()[:16]
+    if state.get('tap_model') is None or state.get('tap_model_key') != cache_key:
+        model, maps = (build_plate_model(state['video'], state['field'], assumptions) if source == 'plate'
+                       else build_model(state['video'],state['field']))
+        model['key'] = cache_key
+        state.update(tap_model=model,tap_maps=maps,tap_field_key=key,tap_model_key=cache_key)
     return state['tap_model'], state['tap_maps']
 
 
@@ -359,7 +371,7 @@ def virtual_tap():
     with lock:
         current(data.get('id'))
         check_revision(data)
-        model, _ = current_tap(data.get('key'))
+        model, _ = current_tap(data.get('key'), data.get('tap', {}))
         return jsonify(key=state['field_key'],revision=state['revision'],**simulate(model,data.get('tap',{})))
 
 
@@ -416,14 +428,24 @@ def frame(clip_id,frame):
                               numeric(request.args.get('threshold',0),'Response threshold'))
         elif view=='tap':
             check_revision(request.args)
-            model, maps = current_tap(request.args.get('key'))
-            options = {k:request.args[k] for k in ('damping_percent','strength','direction','cycles','display_cps') if k in request.args}
-            for name in ('tap_node','probe_a','probe_b'):
-                if name in request.args:
-                    value = numeric(request.args[name],'Tap sample')
-                    if value != int(value):
-                        raise ValueError('Tap sample must be an integer.')
-                    options[name] = int(value)
+            if 'tap' in request.args:
+                try:
+                    options = json.loads(request.args['tap'])
+                except (ValueError, TypeError):
+                    raise ValueError('Tap frame settings must be valid JSON.') from None
+                if not isinstance(options, dict):
+                    raise ValueError('Tap frame settings must be an object.')
+            else:
+                options = {k:request.args[k] for k in ('damping_percent','strength','direction','cycles','display_cps') if k in request.args}
+                for name in ('tap_node','probe_a','probe_b'):
+                    if name in request.args:
+                        value = numeric(request.args[name],'Tap sample')
+                        if value != int(value):
+                            raise ValueError('Tap sample must be an integer.')
+                        options[name] = int(value)
+            model, maps = current_tap(request.args.get('key'), options)
+            if 'model_key' in request.args and request.args['model_key'] != model['key']:
+                raise ValueError('The predicted model changed. Generate its modes again.')
             config = configure(model,options)
             rgb = tap_display_frame(video,model,maps,config,numeric(request.args.get('time',0),'Simulation time'),
                             numeric(request.args.get('gain',10),'Display gain'))
@@ -469,7 +491,7 @@ def export_video():
             raise ValueError('Export settings are no longer current. Rebuild the spatial map or apply the band first.')
         tap, tap_maps = None, None
         if view == 'tap':
-            model, tap_maps = current_tap(data.get('key'))
+            model, tap_maps = current_tap(data.get('key'), data.get('tap', {}))
             tap = simulate(model,data.get('tap',{}))
         metadata = export_metadata(video,view,numeric(data.get('sensitivity',85),'Sensitivity'),
                                    numeric(data.get('modal_gain',10),'Modal gain'),
@@ -561,26 +583,36 @@ def prepare_data_export():
         if data.get('revision') != state['revision']:
             raise ValueError('Results are no longer current. Analyze the response before exporting.')
         kind = data.get('kind')
-        if kind not in ('analysis','samples','traces','tap-traces'):
+        if kind not in ('analysis','samples','traces','tap-traces','tap-model'):
             raise ValueError('Choose analysis JSON, spatial samples, measured point traces, or simulated tap traces.')
-        if kind == 'tap-traces':
-            model, _ = current_tap(data.get('key'))
+        if kind == 'tap-model':
+            model, _ = current_tap(data.get('key'), data.get('tap', {}))
+            prediction = simulate(model, data.get('tap', {}))
+            output = dict(video=state['video'].metadata, **prediction)
+            response = Response(json.dumps(output, indent=2), mimetype='application/json')
+        elif kind == 'tap-traces':
+            model, _ = current_tap(data.get('key'), data.get('tap', {}))
             prediction = simulate(model,data.get('tap',{}))
             stream = io.StringIO()
             writer = csv.writer(stream)
             writer.writerow(['simulation_time_s','A_simulated_source_px','B_simulated_source_px',
                              'assumed_frequency_hz','assumed_damping_percent','relative_tap_strength','direction',
-                             'tap_grid','probe_A_grid','probe_B_grid','interpretation'])
+                             'tap_grid','probe_A_grid','probe_B_grid','interpretation',
+                             'model_source','motion','active_mode_frequencies_hz','geometry_and_mounting_json'])
             config = prediction['settings']
             for i,t in enumerate(prediction['time_s']):
                 writer.writerow([t,*[trace['displacement_source_px'][i] for trace in prediction['traces']],
                                  model['frequency_hz'],config['damping_percent'],config['strength'],config['direction'],
-                                 config['tap_node']+1,config['probe_a']+1,config['probe_b']+1,model['interpretation']])
+                                 config['tap_node']+1,config['probe_a']+1,config['probe_b']+1,model['interpretation'],
+                                 model.get('kind', 'observed'), config.get('motion', 'tap'),
+                                 ';'.join(str(model['modes'][j]['frequency_hz']) for j in config['active_modes']) if 'modes' in model else str(model['frequency_hz']),
+                                 json.dumps(model.get('plate', {}), sort_keys=True)])
             response = Response(stream.getvalue(),mimetype='text/csv')
         else:
             response = {'analysis':export,'samples':field_csv,'traces':export_csv}[kind](state['id'])
         filename = {'analysis':'modal-camera-analysis.json','samples':'modal-camera-spatial-response.csv',
-                    'traces':'modal-camera-traces.csv','tap-traces':'modal-camera-virtual-tap-simulated-traces.csv'}[kind]
+                    'traces':'modal-camera-traces.csv','tap-traces':'modal-camera-virtual-tap-simulated-traces.csv',
+                    'tap-model':'modal-camera-virtual-model.json'}[kind]
         token = secrets.token_hex(16)
         latest_data_export.clear()
         latest_data_export.update(key=token,filename=filename,data=response.get_data(),mimetype=response.mimetype)

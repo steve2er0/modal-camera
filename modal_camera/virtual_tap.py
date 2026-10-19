@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 
 from .response import interpolate_field
+from .plate_modes import validate_plate_settings
 
 
 def validate_tap_settings(data):
@@ -27,6 +28,23 @@ def validate_tap_settings(data):
         if not math.isfinite(value) or not low <= value <= high:
             raise ValueError(f'Virtual tap {key} must be between {low} and {high}.')
         result[key] = value
+    if 'model_source' in data or 'plate' in data:
+        result['model_source'] = data.get('model_source', 'observed')
+        if result['model_source'] not in ('observed', 'plate'):
+            raise ValueError('Choose the observed response or predicted plate model.')
+        result['plate'] = validate_plate_settings(data.get('plate', {}))
+        result['motion'] = data.get('motion', 'tap')
+        if result['motion'] not in ('tap', 'mode'):
+            raise ValueError('Choose a combined tap or a single mode animation.')
+        result['enabled_modes'] = data.get('enabled_modes')
+        if result['enabled_modes'] is not None:
+            modes = result['enabled_modes']
+            if (not isinstance(modes, list) or not 1 <= len(modes) <= 8
+                    or any(type(i) is not int or not 0 <= i < 8 for i in modes) or len(set(modes)) != len(modes)):
+                raise ValueError('Enable at least one of the eight predicted modes.')
+        result['solo_mode'] = data.get('solo_mode')
+        if result['solo_mode'] is not None and (type(result['solo_mode']) is not int or not 0 <= result['solo_mode'] < 8):
+            raise ValueError('Choose one of the eight predicted modes to animate.')
     if result['direction'] not in (-1, 1):
         raise ValueError('Virtual tap direction must be +1 or -1 along the selected image axis.')
     result['cursor_cycle'] = min(result['cursor_cycle'], result['cycles'])
@@ -107,6 +125,17 @@ def configure(model, data):
         opposite = [n for n in other if n['shape'][component]*a < 0]
         settings['probe_b'] = max(opposite or other, key=lambda n: abs(n['shape'][component]))['index']
     settings['participation'] = valid[settings['tap_node']]['shape'][component]
+    if model.get('kind') == 'plate':
+        settings.update(model_source='plate', plate=model['plate'])
+        settings.setdefault('motion', 'tap')
+        settings['enabled_modes'] = settings.get('enabled_modes') or list(range(model['anchor_mode'], min(8, model['anchor_mode']+4)))
+        settings['solo_mode'] = model['anchor_mode'] if settings.get('solo_mode') is None else settings['solo_mode']
+        settings['active_modes'] = [settings['solo_mode']] if settings['motion'] == 'mode' else settings['enabled_modes']
+        settings['clock_hz'] = model['modes'][settings['solo_mode']]['frequency_hz'] if settings['motion'] == 'mode' else model['frequency_hz']
+        settings['max_frequency_hz'] = max(model['modes'][i]['frequency_hz'] for i in settings['active_modes'])
+        # At least 15 exported frames per cycle of the highest selected mode;
+        # all modes slow down together, preserving their physical frequency ratios.
+        settings['effective_display_cps'] = min(settings['display_cps'], 2*settings['clock_hz']/settings['max_frequency_hz'])
     return settings
 
 
@@ -123,6 +152,8 @@ def oscillator(model, settings, time_s):
 
 def simulate(model, data):
     settings = configure(model, data)
+    if model.get('kind') == 'plate':
+        return simulate_plate(model, settings)
     f = model['frequency_hz']
     t = np.linspace(0, settings['cycles']/f, math.ceil(settings['cycles']*24)+1)
     q = oscillator(model, settings, t)
@@ -143,14 +174,20 @@ def simulate(model, data):
 
 
 def tap_frame(video, model, maps, settings, time_s, gain=10.):
-    if not math.isfinite(time_s) or not 0 <= time_s <= settings['cycles']/model['frequency_hz'] + 1e-9:
+    if not math.isfinite(time_s) or not 0 <= time_s <= settings['cycles']/settings.get('clock_hz', model['frequency_hz']) + 1e-9:
         raise ValueError('Virtual tap time is outside the simulation.')
     if not math.isfinite(gain) or not 0 <= gain <= 20:
         raise ValueError('Virtual tap display gain must be between 0 and 20.')
-    q = float(oscillator(model, settings, time_s))
-    coeff = maps['coefficients']
-    dx = coeff[:, :, 0]*q/video.metadata['scale_x']
-    dy = coeff[:, :, 2]*q/video.metadata['scale_y']
+    if model.get('kind') == 'plate':
+        q = plate_coordinates(model, settings, time_s)
+        displacement = np.sum(maps['modes']*q[None, None, :], axis=2)
+        dx = displacement*maps['projection'][0]/video.metadata['scale_x']
+        dy = displacement*maps['projection'][1]/video.metadata['scale_y']
+    else:
+        q = float(oscillator(model, settings, time_s))
+        coeff = maps['coefficients']
+        dx = coeff[:, :, 0]*q/video.metadata['scale_x']
+        dy = coeff[:, :, 2]*q/video.metadata['scale_y']
     return cv2.remap(video.frames[0], (maps['xx']-gain*dx).astype(np.float32),
                      (maps['yy']-gain*dy).astype(np.float32), cv2.INTER_LINEAR,
                      borderMode=cv2.BORDER_REFLECT_101)
@@ -158,13 +195,75 @@ def tap_frame(video, model, maps, settings, time_s, gain=10.):
 
 def tap_display_frame(video, model, maps, settings, time_s, gain=10.):
     rgb = tap_frame(video,model,maps,settings,time_s,gain)
+    if model.get('kind') == 'plate':
+        # A light signed overlay makes nodes/lobes readable while the actual
+        # grid texture moves under it. Zero displacement leaves the texture alone.
+        q = plate_coordinates(model, settings, time_s)
+        displacement = np.sum(maps['modes']*q[None, None, :], axis=2)
+        alpha = np.clip(abs(displacement)/max(model['reference_amplitude_source_px'], 1e-8), 0, 1)*.18
+        colors = np.where((displacement >= 0)[..., None], [255, 201, 134], [54, 160, 238])
+        rgb = np.rint(rgb*(1-alpha[..., None])+colors*alpha[..., None]).astype(np.uint8)
+        cv2.polylines(rgb, [np.array(model['plate']['corners'], np.int32)], True, (54,207,238), 1, cv2.LINE_AA)
     for node in model['nodes']:
         if node['shape'] is not None:
             cv2.circle(rgb,(round(node['x']),round(node['y'])),1,(100,133,148),-1)
     nodes = {n['index']:n for n in model['nodes']}
     for label,key,color in [('T','tap_node',(255,201,134)),('A','probe_a',(54,207,238)),('B','probe_b',(255,201,134))]:
+        if label == 'T' and model.get('kind') == 'plate' and settings['motion'] == 'mode':
+            continue
         node = nodes[settings[key]]
         p = (round(node['x']),round(node['y']))
         cv2.circle(rgb,p,5 if label=='T' else 3,color,1,cv2.LINE_AA)
         cv2.putText(rgb,label,(p[0]+6,p[1]+(10 if label=='T' else -4)),cv2.FONT_HERSHEY_SIMPLEX,.3,color,1,cv2.LINE_AA)
     return rgb
+
+
+def plate_coordinates(model, settings, time_s):
+    """One common relative point impulse; consistent peak-normalized masses."""
+    t = np.asarray(time_s)
+    result = np.zeros((8,)+t.shape)
+    reference = model['reference_amplitude_source_px']
+    nodes = {n['index']: n for n in model['nodes']}
+    anchor = model['modes'][model['anchor_mode']]
+    impulse = (settings['strength']*settings['direction']*2*math.pi*model['frequency_hz']
+               *reference*anchor['modal_mass'])
+    zeta = settings['damping_percent']/100
+    for i in settings['active_modes']:
+        mode = model['modes'][i]
+        omega = 2*math.pi*mode['frequency_hz']
+        if settings['motion'] == 'mode':
+            result[i] = settings['strength']*settings['direction']*reference*np.sin(omega*t)
+        else:
+            wd = omega*math.sqrt(1-zeta*zeta)
+            velocity = impulse*nodes[settings['tap_node']]['modes'][i]/mode['modal_mass']
+            result[i] = velocity/wd*np.exp(-zeta*omega*t)*np.sin(wd*t)
+    return result
+
+
+def simulate_plate(model, settings):
+    clock = settings['clock_hz']
+    duration = settings['cycles']/clock
+    samples = math.ceil(duration*settings['max_frequency_hz']*24)+1
+    if samples > 60000:
+        raise ValueError('This mode range needs too many trace samples. Shorten the simulation or enable fewer higher modes.')
+    t = np.linspace(0, duration, samples)
+    q = plate_coordinates(model, settings, t)
+    nodes = {n['index']: n for n in model['nodes']}
+    component = 0 if model['axis'] == 'x' else 1
+    traces = []
+    for label, key in [('A', 'probe_a'), ('B', 'probe_b')]:
+        node = nodes[settings[key]]
+        contributions = q*np.array(node['modes'])[:, None]*model['projection'][component]
+        traces.append(dict(label=label, node=node['index'], x=node['x'], y=node['y'],
+                           displacement_source_px=contributions.sum(axis=0).tolist()))
+    masses = np.array([m['modal_mass'] for m in model['modes']])
+    omega = 2*math.pi*np.array([m['frequency_hz'] for m in model['modes']])
+    zeta = settings['damping_percent']/100
+    return dict(model=model, settings=settings, time_s=t.tolist(), traces=traces,
+                clock_hz=clock, duration_s=duration,
+                display_duration_s=settings['cycles']/settings['effective_display_cps'],
+                playback_slowdown=clock/settings['effective_display_cps'],
+                seconds_to_ten_percent=math.log(10)/(zeta*2*math.pi*min(model['modes'][i]['frequency_hz'] for i in settings['active_modes'])),
+                normalized_matrices=dict(M=np.diag(masses).tolist(), C=np.diag(2*zeta*omega*masses).tolist(),
+                                         K=np.diag(omega**2*masses).tolist(), units='Chosen uniform areal mass = 1; peak-normalized shapes; no kg, N/m or force calibration'),
+                units='Model-predicted source-pixel projection; relative impulse; display gain excluded')

@@ -71,10 +71,10 @@ function showTimebase(){
 function updateExports(){
   const ready=!!clip&&!busy&&!dirty,band=ready&&!!renderKey&&!!responsePixels,field=ready&&!!spatialField;
   const tap=field&&!!tapData&&tapData.key===spatialField.key;
-  const available={tap,'tap-traces':tap,heatmap:band,isolated:band,modal:field&&spatialField.reference.phase_deg!==null,analysis:ready&&!!(analysis||spatialField||displacementSpectrum),samples:field,traces:ready&&!!analysis};
+  const available={tap,'tap-traces':tap,'tap-model':tap,heatmap:band,isolated:band,modal:field&&spatialField.reference.phase_deg!==null,analysis:ready&&!!(analysis||spatialField||displacementSpectrum),samples:field,traces:ready&&!!analysis};
   for(const option of $('exportKind').options)option.disabled=!available[option.value];
   $('exportKind').disabled=busy||!Object.values(available).some(Boolean);$('exportResponse').disabled=!available[$('exportKind').value];
-  $('exportHelp').textContent=['tap','tap-traces'].includes($('exportKind').value)?'Virtual tap exports include assumed damping, relative strength, simulated point traces and timing; no force calibration.':renderInfo||spatialField?`Exports capture the applied frequency, timing, sensitivity and display gain. Animation contains four slowed cycles.`:displacementSpectrum?'PSD is available in Analysis JSON. Analyze the response to enable video exports.':'Analyze response to enable exports. No download will replace this workspace.';
+  $('exportHelp').textContent=['tap','tap-traces','tap-model'].includes($('exportKind').value)?'Virtual exports capture the current single-mode animation or combined tap, simulated traces, geometry, mounting, predicted frequencies and timing. No force calibration.':renderInfo||spatialField?`Exports capture the applied frequency, timing, sensitivity and display gain. Animation contains four slowed cycles.`:displacementSpectrum?'PSD is available in Analysis JSON. Analyze the response to enable video exports.':'Analyze response to enable exports. No download will replace this workspace.';
 }
 function updateUI(){
   showTimebase();syncRoiInputs();$('targetHelp').textContent=$('linkedBand').checked?'Band follows target ± half the bandwidth.':'Independent band; target sets the displacement fit.';$('low').readOnly=$('linkedBand').checked;$('high').readOnly=$('linkedBand').checked;$('bandwidth').disabled=busy||!$('linkedBand').checked;
@@ -84,6 +84,7 @@ function updateUI(){
   if(clip){$('highpassCutoff').min=2*clip.metadata.resolution_hz;$('highpassCutoff').max=clip.metadata.nyquist;}
   $('play').disabled=busy||!clip;$('modalPlay').disabled=busy||!spatialField||spatialField.reference.phase_deg===null;
   $('tapPlay').disabled=busy||!spatialField;$('tapReset').disabled=busy||!tapData;$('tapTime').disabled=busy||!tapData;
+  updatePlateControls();
   const complete=!!renderKey&&!!spatialField;
   $('resultState').textContent=busy?'Working…':needsUpdate?'Needs update':complete?'Ready':renderKey?'Partial result':'Not analyzed';
   $('resultState').className='state-pill '+(complete&&!dirty?'ready':'pending');

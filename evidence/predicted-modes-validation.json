@@ -1,0 +1,119 @@
+{
+  "anchor_hz": 94.872,
+  "source": "95Hz_AlPlate_wGrid_frame_order_30fps.avi",
+  "analysis_fps": 240.0,
+  "camera_nyquist_hz": 120.0,
+  "exports": [
+    {
+      "name": "predicted-M3",
+      "path": "/Users/stephenwells/Documents/DevOps/modal-camera/local_videos/exports/predicted-M3.mp4",
+      "frames": 76,
+      "fps": 30.0,
+      "shape": [
+        664,
+        640,
+        3
+      ],
+      "bytes": 135495,
+      "simulation_duration_s": 0.019504035290655,
+      "playback_slowdown": 128.17860318361036,
+      "max_displayed_mode_hz": 2.0,
+      "active_modes": [
+        2
+      ]
+    },
+    {
+      "name": "predicted-combined-tap",
+      "path": "/Users/stephenwells/Documents/DevOps/modal-camera/local_videos/exports/predicted-combined-tap.mp4",
+      "frames": 210,
+      "fps": 30.0,
+      "shape": [
+        664,
+        640,
+        3
+      ],
+      "bytes": 246303,
+      "simulation_duration_s": 0.052702588751159456,
+      "playback_slowdown": 131.90565108096112,
+      "max_displayed_mode_hz": 2.0,
+      "active_modes": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "model_assumptions": {
+    "anchor_mode": null,
+    "aspect_ratio": 2.0,
+    "corners": [
+      [
+        45.0,
+        55.0
+      ],
+      [
+        236.0,
+        52.0
+      ],
+      [
+        269.0,
+        96.0
+      ],
+      [
+        20.0,
+        99.0
+      ]
+    ],
+    "mount_radius": 0.08,
+    "mount_stiffness": 10000.0,
+    "mount_u": 0.5,
+    "mount_v": 0.5,
+    "mounting": "free",
+    "poisson": 0.33,
+    "projection_angle_deg": 90.0
+  },
+  "shape_mac": 0.8421663531071136,
+  "shape_samples": 15,
+  "frequencies_hz": [
+    94.872,
+    116.14141012764094,
+    256.3572063672207,
+    263.81130216192224,
+    391.130828902555,
+    446.47251315484755,
+    460.9871282978227,
+    527.2558341728077
+  ],
+  "max_basis_ratio_change_percent": 0.15236793112811675,
+  "browser_qa": {
+    "url": "http://127.0.0.1:8766/",
+    "preserved_two_video_tiles": true,
+    "predicted_mode_animation_starts_on_animate": true,
+    "combined_tap_play_pause": true,
+    "geometry_apply_2_to_2p1_and_back": true,
+    "refresh_recovers_geometry_and_modes": true,
+    "advanced_collapsed_on_return": true,
+    "original_psd_point_preserved": [
+      112,
+      64
+    ],
+    "screenshots": [
+      "ui-predicted-video.png",
+      "ui-predicted-modes.png"
+    ],
+    "mobile_and_windows_execution": "not tested"
+  },
+  "tests": {
+    "full_suite": "147 passed in 71.54s (0:01:11)",
+    "final_export_regression": "53 passed in 16.04s",
+    "js_syntax_and_diff_check": "passed"
+  },
+  "git_delivery_checks": {
+    "full_suite_rerun": true,
+    "javascript_syntax": "All six JavaScript files passed node --check",
+    "diff_whitespace": "git diff --check passed",
+    "mp4_decode": "76-frame mode animation and 210-frame combined tap decoded at 30 fps",
+    "browser_qa": "Retained from the implementation pass; not rerun during save and push"
+  }
+}

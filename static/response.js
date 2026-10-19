@@ -59,7 +59,12 @@ function updateResponseHelp(){
     $('responseScale').textContent=`0–${reference.toFixed(3)} luminance levels RMS; show above ${(reference*sensitivityThreshold()).toFixed(3)}. Colors saturate at the 99th percentile.`;
     $('responseHelp').textContent=view==='amplified'?'Magnified images are visualization only. Measurements use original frames.':`${renderInfo?renderInfo.low.toFixed(2)+'–'+renderInfo.high.toFixed(2)+' Hz · ':''}Stable mask from original band-response RMS, independent of gain. Brightness variation is texture-dependent and can include lighting flicker; dark does not prove stationary.`;
   }
-  if(view==='tap'){$('renderLabel').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} Hz · ASSUMED MODEL`:'ANALYZE RESPONSE';$('responseHelp').textContent='One standing-mode approximation with assumed damping and relative impulse scaling. Simulated source-pixel motion is not a measured impulse response.';}
+  if(view==='tap'){$('renderLabel').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} Hz anchor · ASSUMED MODEL`:'ANALYZE RESPONSE';$('responseHelp').textContent='Observed standing shape or predicted thin-plate modes. Damping, geometry and mounting are assumptions; higher modes and simulated taps are not additional measurements.';}
+  if(view==='tap'&&tapData?.model.kind==='plate'){
+    const c=tapData.settings;
+    $('visualizationTitle').textContent=c.motion==='mode'?`Predicted M${c.solo_mode+1} · ${c.clock_hz.toFixed(1)} Hz`:`Combined virtual tap · ${c.active_modes.length} modes`;
+    $('renderLabel').textContent=`${tapData.model.frequency_hz.toFixed(3)} Hz anchor · PREDICTED`;
+  }
   updateExports();if(hoverNode!==null&&spatialField)inspectNode(hoverNode);
 }
 function centeredMessage(ctx,c,text){ctx.fillStyle='#101820dc';ctx.fillRect(0,c.height/2-22,c.width,44);ctx.fillStyle='#c0d1df';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(text,c.width/2,c.height/2+4);ctx.textAlign='left';}
