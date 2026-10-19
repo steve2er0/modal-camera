@@ -1,4 +1,4 @@
-"""Assumed rectangular Kirchhoff-Love plate, calibrated to one projected shape.
+"""Assumed rectangular or swept/tapered Kirchhoff-Love planform.
 
 Rayleigh-Ritz bending energy, not a membrane/spring-grid surrogate. Length is
 in units of plate width and D = areal mass = 1 before frequency calibration.
@@ -19,7 +19,8 @@ def validate_plate_settings(data):
         raise ValueError('Plate assumptions must be an object.')
     result = {}
     for key, default, low, high in [
-        ('aspect_ratio', 2., .5, 6.), ('poisson', .33, 0., .49),
+        ('aspect_ratio', 2., .5, 12.), ('poisson', .33, 0., .49),
+        ('taper_ratio', 1., .2, 2.), ('sweep_offset', 0., -2., 2.),
         ('mount_u', .5, .1, .9), ('mount_v', .5, .1, .9),
         ('mount_radius', .08, .02, .2), ('mount_stiffness', 10000., 10., 100000.),
         ('projection_angle_deg', 90., -180., 180.)]:
@@ -31,8 +32,8 @@ def validate_plate_settings(data):
             raise ValueError(f'Plate {key} must be between {low} and {high}.')
         result[key] = value
     result['mounting'] = data.get('mounting', 'free')
-    if result['mounting'] not in ('free', 'center', 'simply-supported'):
-        raise ValueError('Choose free edges, an elastic mounting patch, or simply supported edges.')
+    if result['mounting'] not in ('free', 'center', 'simply-supported', 'cantilever'):
+        raise ValueError('Choose free edges, an elastic patch, simply supported edges, or a clamped root.')
     result['anchor_mode'] = data.get('anchor_mode')
     if result['anchor_mode'] is not None and (type(result['anchor_mode']) is not int or not 0 <= result['anchor_mode'] < 6):
         raise ValueError('Anchor mode must be automatic or one of the first six flexible modes.')
@@ -54,8 +55,8 @@ def validate_plate_settings(data):
 
 
 def _basis(x, y, aspect, order, mounting, dx=0, dy=0):
-    """Tensor Legendre polynomials; edge bubble enforces w=0 for SSSS."""
-    def values(coordinate, length, derivative):
+    """Reference tensor polynomials with exact essential edge conditions."""
+    def values(coordinate, length, derivative, spanwise):
         u = np.asarray(coordinate)/length
         rows = []
         for degree in range(order):
@@ -67,10 +68,50 @@ def _basis(x, y, aspect, order, mounting, dx=0, dy=0):
                     value += derivative*p.deriv(derivative-1)(2*u-1)*2**(derivative-1)*(1-2*u)
                 if derivative == 2:
                     value -= 2*p(2*u-1)
+            elif mounting == 'cantilever' and spanwise:
+                # u² imposes w=0 and the entire gradient=0 at the root u=0.
+                value *= u*u
+                if derivative >= 1:
+                    value += derivative*p.deriv(derivative-1)(2*u-1)*2**(derivative-1)*2*u
+                if derivative == 2:
+                    value += 2*p(2*u-1)
             rows.append(value/length**derivative)
         return rows
-    px, py = values(x, aspect, dx), values(y, 1., dy)
+    px, py = values(x, aspect, dx, True), values(y, 1., dy, False)
     return np.einsum('ip,jp->pij', px, py).reshape(len(x), order**2)
+
+
+def planform_xy(settings, uv):
+    """Physical plane in root-chord units; camera perspective is separate."""
+    uv = np.asarray(uv, dtype=float)
+    u,v = uv[...,0],uv[...,1]
+    chord = 1+(settings.get('taper_ratio',1.)-1)*u
+    return np.stack([settings['aspect_ratio']*u, settings.get('sweep_offset',0.)*u+chord*v],axis=-1)
+
+
+def planform_uv(settings, xy):
+    xy = np.asarray(xy, dtype=float)
+    u = xy[...,0]/settings['aspect_ratio']
+    chord = 1+(settings.get('taper_ratio',1.)-1)*u
+    with np.errstate(divide='ignore',invalid='ignore'):
+        v = (xy[...,1]-settings.get('sweep_offset',0.)*u)/chord
+    return np.stack([u,np.where(chord>1e-9,v,np.nan)],axis=-1)
+
+
+def planform_basis(settings, uv, order):
+    """Basis and physical Hessian, including the non-affine map derivatives."""
+    uv = np.asarray(uv,float)
+    a = settings['aspect_ratio']; d = settings.get('taper_ratio',1.)-1
+    c = 1+d*uv[:,0]; g = settings.get('sweep_offset',0.)+d*uv[:,1]
+    x,y = uv[:,0]*a,uv[:,1]
+    def basis(dx=0,dy=0):return _basis(x,y,a,order,settings['mounting'],dx,dy)
+    b,by = basis(),basis(dy=1)
+    bxx,byy,bxy = basis(dx=2),basis(dy=2),basis(dx=1,dy=1)
+    vx = -g/(a*c)
+    vxx = 2*d*g/(a*a*c*c)
+    vxy = -d/(a*c*c)
+    return (b,bxx+2*vx[:,None]*bxy+vx[:,None]**2*byy+vxx[:,None]*by,
+            byy/c[:,None]**2,bxy/c[:,None]+(vx/c)[:,None]*byy+vxy[:,None]*by)
 
 
 def solve_plate(settings, order=11, count=8):
@@ -82,13 +123,11 @@ def solve_plate(settings, order=11, count=8):
     """
     a, nu, mounting = settings['aspect_ratio'], settings['poisson'], settings['mounting']
     g, weights = leggauss(order+3)
-    xx, yy = np.meshgrid((g+1)*a/2, (g+1)/2)
-    x, y = xx.ravel(), yy.ravel()
-    w = np.outer(weights, weights).ravel()*a/4
-    b = _basis(x, y, a, order, mounting)
-    bx = _basis(x, y, a, order, mounting, dx=2)
-    by = _basis(x, y, a, order, mounting, dy=2)
-    bt = _basis(x, y, a, order, mounting, dx=1, dy=1)
+    uu, vv = np.meshgrid((g+1)/2, (g+1)/2)
+    uv = np.column_stack([uu.ravel(),vv.ravel()])
+    chord = 1+(settings.get('taper_ratio',1.)-1)*uv[:,0]
+    w = np.outer(weights, weights).ravel()*a*chord/4
+    b,bx,by,bt = planform_basis(settings,uv,order)
     mass = b.T @ (w[:, None]*b)
     cross = bx.T @ (w[:, None]*by)
     stiffness = (bx.T @ (w[:, None]*bx) + by.T @ (w[:, None]*by)
@@ -97,11 +136,13 @@ def solve_plate(settings, order=11, count=8):
         # A square elastic patch, side = 2 radius in width units. Integrate
         # separately so moving a small patch does not jump quadrature cells.
         r = settings['mount_radius']
-        cx, cy = settings['mount_u']*a, settings['mount_v']
-        if r >= min(cx, a-cx, cy, 1-cy):
+        cx, cy = planform_xy(settings,[settings['mount_u'],settings['mount_v']])
+        patch_uv = planform_uv(settings,[[cx-r,cy-r],[cx+r,cy-r],[cx+r,cy+r],[cx-r,cy+r]])
+        if not np.all((patch_uv > 0)&(patch_uv < 1)):
             raise ValueError('The mounting patch must lie inside the plate. Reduce its radius or move it inward.')
         mx, my = np.meshgrid(cx+g*r, cy+g*r)
-        mb = _basis(mx.ravel(), my.ravel(), a, order, mounting)
+        patch_uv = planform_uv(settings,np.column_stack([mx.ravel(),my.ravel()]))
+        mb = _basis(patch_uv[:,0]*a,patch_uv[:,1],a,order,mounting)
         mw = np.outer(weights, weights).ravel()/4
         stiffness += settings['mount_stiffness'] * mb.T @ (mw[:, None]*mb)
     values, vectors = eigh((stiffness+stiffness.T)/2, mass)
@@ -118,9 +159,11 @@ def solve_plate(settings, order=11, count=8):
     sample = _basis(gx.ravel(), gy.ravel(), a, order, mounting) @ vectors
     maxima = np.max(np.abs(sample), axis=0)
     vectors = vectors/maxima
-    modal_mass = np.diag(vectors.T @ mass @ vectors)/a
+    area = a*(1+settings.get('taper_ratio',1.))/2
+    modal_mass = np.diag(vectors.T @ mass @ vectors)/area
     return dict(eigenvalues=values, vectors=vectors, modal_mass=modal_mass,
-                order=order, aspect=a, mounting=mounting, rigid_modes_removed=rigid)
+                order=order, aspect=a, mounting=mounting, rigid_modes_removed=rigid,
+                area=area,taper_ratio=settings.get('taper_ratio',1.),sweep_offset=settings.get('sweep_offset',0.))
 
 
 def evaluate(solution, uv):
@@ -142,9 +185,11 @@ def build_plate_model(video, field, data):
     corners = np.array(cfg['corners'], np.float32)
     if np.any(corners < 0) or np.any(corners[:, 0] >= w) or np.any(corners[:, 1] >= h):
         raise ValueError('The plate outline must be inside the current analysis image.')
-    homography = cv2.getPerspectiveTransform(corners, np.array([[0,0],[1,0],[1,1],[0,1]], np.float32))
+    physical_corners = planform_xy(cfg,[[0,0],[1,0],[1,1],[0,1]]).astype(np.float32)
+    homography = cv2.getPerspectiveTransform(corners, physical_corners)
     def uv_for(points):
-        return cv2.perspectiveTransform(np.array(points, np.float32).reshape(-1, 1, 2), homography)[:, 0]
+        physical = cv2.perspectiveTransform(np.array(points, np.float32).reshape(-1, 1, 2), homography)[:, 0]
+        return planform_uv(cfg,physical)
     candidates = [n for n in field['nodes'] if n['fit'][field['axis']]
                   and n['fit'][field['axis']]['phase_deg'] is not None]
     if not candidates:
@@ -161,7 +206,8 @@ def build_plate_model(video, field, data):
     observed = (z*np.exp(-1j*orientation)).real
     if np.max(np.abs(observed)) < 1e-8:
         raise ValueError('The plate has no usable standing projection at the anchor frequency.')
-    order = 15 if cfg['mounting'] == 'center' else 11
+    general = cfg['taper_ratio'] != 1 or cfg['sweep_offset'] != 0 or cfg['mounting'] in ('center','cantilever')
+    order = 15 if general else 11
     solution = solve_plate(cfg, order=order)
     sampled = evaluate(solution, uv)
     scores = mac(observed, sampled)
@@ -177,7 +223,8 @@ def build_plate_model(video, field, data):
     positions = [[n['x'], n['y']] for n in field['nodes']]
     node_uv = uv_for(positions)
     node_inside = np.all((node_uv >= 0) & (node_uv <= 1), axis=1)
-    shapes = evaluate(solution, node_uv)
+    shapes = np.zeros((len(node_uv),len(frequencies)))
+    shapes[node_inside] = evaluate(solution,node_uv[node_inside])
     angle = math.radians(cfg['projection_angle_deg'])
     direction = np.array([math.cos(angle), math.sin(angle)])
     component = 0 if field['axis'] == 'x' else 1
@@ -217,14 +264,16 @@ def build_plate_model(video, field, data):
                  plate=cfg, projection=direction.tolist(),
                  interpretation='Predicted thin-plate modes anchored to an assumed 95 Hz operating-response mode; not measured higher modes or a force-calibrated twin',
                  assumptions=[
-                     'Uniform isotropic thin rectangular plate, linear transverse bending; no thickness, material or mass identified.',
-                     'Four image corners map to an assumed rectangle. Physical length/width is user-assumed; perspective alone cannot determine it.',
-                     f"Mounting: {cfg['mounting']}. Shaker impedance and mounting are not identified; free edges omit its dynamic coupling.",
+                     'Uniform isotropic flat thin plate, linear transverse bending; no thickness, material or mass identified.',
+                     f"Assumed span/root chord {cfg['aspect_ratio']}, tip/root chord {cfg['taper_ratio']}, tip leading-edge offset/root chord {cfg['sweep_offset']}. Physical planform is user-assumed, separate from camera perspective.",
+                     'Corners are root-leading, tip-leading, tip-trailing, root-trailing. The root edge joins corners 4 and 1.',
+                     f"Mounting: {cfg['mounting']}. Cantilever means zero displacement and slope along the entire root, with the other three edges free. Mounting and support compliance are not identified.",
                      'A real common-phase projection of visible accepted patches is compared with the first six flexible model modes by squared MAC.',
                      'The chosen anchor is assumed to be a natural mode at the selected frequency; all model frequencies share that one scale factor.',
                      'MAC measures agreement at sparse visible points, not confidence, uniqueness or validation of higher-mode predictions.',
                      f'Only eight flexible modes are retained; free-plate rigid modes are excluded. Ritz orders {order-2} and {order} change frequency ratios by up to {max(ratio_change):.2f}%; this is a convergence indicator, not an error bound.',
-                     'Modal masses use a chosen uniform areal-mass normalization. No kilograms, newtons, physical stiffness or force calibration.',
+                     'Modal masses use chosen total plate mass 1 with uniform areal density. No kilograms, newtons, physical stiffness or force calibration.',
+                     'Wing-like planforms remain flat isotropic plates: no spars, ribs, laminate anisotropy, camber, pretwist, fuel/engine masses, aerodynamics or aeroelastic flutter model.',
                      'Each selected mode receives the same relative point impulse weighted by its local shape and divided by its modal mass.',
                      'Damping is the same user-assumed ratio in every mode; no damping is measured here.',
                      'Video texture is warped across the assumed plate outline, including unmeasured areas, along one assumed image projection; background remains fixed.',

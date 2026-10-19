@@ -314,5 +314,5 @@ def simulate_plate(model, settings):
                 playback_slowdown=clock/settings['effective_display_cps'],
                 seconds_to_ten_percent=math.log(10)/(zeta*2*math.pi*min(model['modes'][i]['frequency_hz'] for i in settings['active_modes'])),
                 normalized_matrices=dict(M=np.diag(masses).tolist(), C=np.diag(2*zeta*omega*masses).tolist(),
-                                         K=np.diag(omega**2*masses).tolist(), units=('Chosen total mass = 1 per independent string; ' if model.get('kind') == 'string' else 'Chosen uniform areal mass = 1; ')+'peak-normalized shapes; no kg, N/m or force calibration'),
+                                         K=np.diag(omega**2*masses).tolist(), units=('Chosen total mass = 1 per independent string; ' if model.get('kind') == 'string' else 'Chosen total plate mass = 1; uniform areal density; ')+'peak-normalized shapes; no kg, N/m or force calibration'),
                 units='Model-predicted source-pixel projection; relative impulse; display gain excluded')

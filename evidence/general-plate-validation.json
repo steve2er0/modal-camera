@@ -1,0 +1,88 @@
+{
+  "scope": "Synthetic wing pipeline and independent cantilever/coordinate benchmarks; no real airplane-wing video validated.",
+  "cantilever_benchmark": {
+    "poisson": 0,
+    "span_over_chord": 5,
+    "exact_omega": [
+      0.140640610740006,
+      0.8813796625866709,
+      2.4678885765419643
+    ],
+    "computed_omega": [
+      0.14064061108432882,
+      0.8813796664903286,
+      2.4678885751462625
+    ],
+    "max_relative_error": 4.429030919794741e-09
+  },
+  "synthetic_planform": {
+    "aspect_ratio": 3.0,
+    "poisson": 0.33,
+    "taper_ratio": 0.5,
+    "sweep_offset": 0.5,
+    "mount_u": 0.5,
+    "mount_v": 0.5,
+    "mount_radius": 0.08,
+    "mount_stiffness": 10000.0,
+    "projection_angle_deg": 90.0,
+    "mounting": "cantilever",
+    "anchor_mode": null,
+    "corners": [
+      [
+        30.0,
+        20.0
+      ],
+      [
+        146.12068965517238,
+        50.86206896551724
+      ],
+      [
+        148.71794871794873,
+        76.06837606837607
+      ],
+      [
+        38.23529411764706,
+        78.43137254901961
+      ]
+    ]
+  },
+  "synthetic_anchor_hz": 17.0,
+  "mode_frequencies_hz": [
+    17.0,
+    92.43915255985,
+    146.58181732925783,
+    248.9888855215663,
+    376.8560053816124,
+    484.1818615049253,
+    649.1924549722448,
+    798.8615857845515
+  ],
+  "fit_mac": 0.9999999999999845,
+  "refinement_max_ratio_change_percent": 0.002714323491193049,
+  "root_shape_max": 1.827240130052714e-15,
+  "export": {
+    "path": "/Users/stephenwells/Documents/DevOps/modal-camera/local_videos/exports/general-wing-synthetic-combined-tap.mp4",
+    "frames": 409,
+    "fps": 30,
+    "bytes": 744509,
+    "max_decode_rgb_mae": 2.3057170708105645,
+    "playback_slowdown": 46.219576279925
+  },
+  "tests": "191 passed in 80.94s (0:01:20)",
+  "checks": {
+    "javascript": "All seven scripts passed node --check",
+    "whitespace": "git diff --check passed"
+  },
+  "browser_qa": {
+    "url": "http://127.0.0.1:8766/",
+    "wing_preset_updates_draft_geometry_and_root": true,
+    "rectangle_preset_recovers_original_defaults": true,
+    "elastic_patch_controls_disabled_for_clamped_root": true,
+    "observed_anchor_label_not_specific_to_95hz": true,
+    "owner_clip_timing_settings_and_ui_preserved": true,
+    "wing_preset_is_unapplied_draft_at_return": true,
+    "scope": "Real 95 Hz plate session retained; wing mechanics/animation/export validated with explicitly synthetic geometry, not real airplane-wing video.",
+    "screenshot": "ui-general-plate-wing-controls.png",
+    "delivery_scope": "Browser controls were verified during feature implementation; browser checks were not repeated during Git delivery."
+  }
+}
