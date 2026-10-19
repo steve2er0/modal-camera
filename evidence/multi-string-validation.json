@@ -1,0 +1,104 @@
+{
+  "analysis_fps": 600.0,
+  "encoded_fps": 29.97002997002997,
+  "strings": [
+    {
+      "name": "String 1",
+      "frequency_hz": 80.0,
+      "fit_samples": 9,
+      "fit_mac": 0.9341986565704425,
+      "reference_amplitude_source_px": 0.018792348020604914,
+      "amplitude_basis": "complex least-squares fit to original tracked patches",
+      "geometry": {
+        "span_start": 0.0,
+        "span_end": 0.5,
+        "half_width_px": 3.0,
+        "inharmonicity": 0.0,
+        "anchor_harmonic": 1,
+        "endpoints": [
+          [
+            58.0,
+            25.0
+          ],
+          [
+            423.0,
+            83.0
+          ]
+        ],
+        "amplitude_source_px": null
+      }
+    },
+    {
+      "name": "String 2",
+      "frequency_hz": 108.0,
+      "fit_samples": 4,
+      "fit_mac": 0.9516517047408954,
+      "reference_amplitude_source_px": 0.01569372488396033,
+      "amplitude_basis": "complex least-squares fit to original tracked patches",
+      "geometry": {
+        "span_start": 0.0,
+        "span_end": 0.5,
+        "half_width_px": 3.0,
+        "inharmonicity": 0.0,
+        "anchor_harmonic": 1,
+        "endpoints": [
+          [
+            58.0,
+            39.6
+          ],
+          [
+            421.8,
+            98.3
+          ]
+        ],
+        "amplitude_source_px": null
+      }
+    }
+  ],
+  "active_modes_hz": [
+    80.0,
+    160.0,
+    240.0,
+    108.0,
+    216.0,
+    324.0
+  ],
+  "shared_pluck_fraction": 0.20833333333333331,
+  "changed_texture_pixels_per_string": [
+    3007,
+    2713
+  ],
+  "distant_background_unchanged": true,
+  "frame_render_ms": 35.77,
+  "export": {
+    "path": "/Users/stephenwells/Documents/DevOps/modal-camera/local_videos/exports/guitar-multiple-strings-combined-tap.mp4",
+    "frames": 305,
+    "fps": 30,
+    "bytes": 487491,
+    "max_decode_rgb_mae": 2.520063598356009,
+    "playback_slowdown": 162.0
+  },
+  "checks": {
+    "javascript": "All seven scripts passed node --check",
+    "whitespace": "git diff --check passed"
+  },
+  "tests": "181 passed in 83.99s (0:01:23)",
+  "browser_qa": {
+    "url": "http://127.0.0.1:8766/",
+    "selected_second_segment_on_original": true,
+    "per_string_anchor_hz": [
+      80,
+      108
+    ],
+    "harmonic_list_switch_keeps_other_string_modes": true,
+    "toggle_harmonic_preserves_other_string_modes": true,
+    "combined_play_pause_scrub": true,
+    "refresh_recovers_both_strings_and_cross_string_probes": true,
+    "six_harmonics_enabled_at_return": true,
+    "current_layout_preserved": true,
+    "advanced_collapsed_at_return": true,
+    "screenshot": "ui-multi-string-video.png",
+    "export_validation": "Loopback MP4 download and decode; browser filesystem save not exercised.",
+    "scope": "Verified during feature implementation; not repeated during Git delivery."
+  }
+}

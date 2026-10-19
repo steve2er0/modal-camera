@@ -170,9 +170,12 @@ def annotate_tap(rgb, metadata, time_s):
     text_line(output,f"+/- {peak:.3g} simulated source px (gain excluded)",base+45,scale=.4)
     a,b = prediction['traces']
     label = model.get('sample_label','Grid')
-    text_line(output,f"A: {label} {a['node']+1} (cyan) | B: {label} {b['node']+1} (amber) | 0-{prediction['duration_s']:.4f} simulation s",base+166)
+    text_line(output,f"A: {a.get('sample',label+' '+str(a['node']+1))} (cyan) | B: {b.get('sample',label+' '+str(b['node']+1))} (amber) | 0-{prediction['duration_s']:.4f} s",base+166)
     text_line(output,'Normalized mass; assumed damping and natural frequency; no force calibration.',base+190)
-    if predicted:
+    if model.get('strings'):
+        active_strings = {model['modes'][i]['string_index'] for i in config['active_modes']}
+        text_line(output,f"{len(active_strings)} independent strings | {len(config['active_modes'])} harmonics | Assumed model, no bridge coupling",base+212)
+    elif predicted:
         frequencies = ', '.join(f"{model['modes'][i]['frequency_hz']:.1f}" for i in config['active_modes'])
         text_line(output, f"Model modes: {frequencies} Hz | Not measured higher modes.", base+212)
     else:

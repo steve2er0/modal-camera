@@ -621,7 +621,8 @@ def prepare_data_export():
             writer.writerow(['simulation_time_s','A_simulated_source_px','B_simulated_source_px',
                              'assumed_frequency_hz','assumed_damping_percent','relative_tap_strength','direction',
                              'tap_grid','probe_A_grid','probe_B_grid','interpretation',
-                             'model_source','motion','active_mode_frequencies_hz','geometry_and_mounting_json','sample_kind'])
+                             'model_source','motion','active_mode_frequencies_hz','geometry_and_mounting_json','sample_kind',
+                             'probe_A_sample','probe_B_sample','shared_string_pluck_fraction'])
             config = prediction['settings']
             for i,t in enumerate(prediction['time_s']):
                 writer.writerow([t,*[trace['displacement_source_px'][i] for trace in prediction['traces']],
@@ -629,7 +630,8 @@ def prepare_data_export():
                                  config['tap_node']+1,config['probe_a']+1,config['probe_b']+1,model['interpretation'],
                                  model.get('kind', 'observed'), config.get('motion', 'tap'),
                                  ';'.join(str(model['modes'][j]['frequency_hz']) for j in config['active_modes']) if 'modes' in model else str(model['frequency_hz']),
-                                 json.dumps(model.get(model.get('kind','plate'), {}), sort_keys=True),model.get('sample_label','Grid')])
+                                 json.dumps(model.get(model.get('kind','plate'), {}), sort_keys=True),model.get('sample_label','Grid'),
+                                 prediction['traces'][0].get('sample',''),prediction['traces'][1].get('sample',''),config.get('tap_fraction','')])
             response = Response(stream.getvalue(),mimetype='text/csv')
         else:
             response = {'analysis':export,'samples':field_csv,'traces':export_csv}[kind](state['id'])

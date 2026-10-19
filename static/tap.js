@@ -26,13 +26,13 @@ function updateTapLabels(){
 }
 function populateTapSelectors(){
   for(const [id,key] of [['tapNode','tap_node'],['tapProbeA','probe_a'],['tapProbeB','probe_b']]){
-    $(id).replaceChildren(...tapData.model.nodes.filter(n=>n.shape!==null).map(n=>new Option(`${tapData.model.sample_label||'Grid'} ${n.index+1} (${n.x.toFixed(0)}, ${n.y.toFixed(0)})`,String(n.index))));$(id).value=tapSelection[key];
+    $(id).replaceChildren(...tapData.model.nodes.filter(n=>n.shape!==null).map(n=>new Option(n.label?`${n.label}${key==='tap_node'?' · u='+n.u.toFixed(3):''}`:`${tapData.model.sample_label||'Grid'} ${n.index+1} (${n.x.toFixed(0)}, ${n.y.toFixed(0)})`,String(n.index))));$(id).value=tapSelection[key];
   }
 }
 async function prepareTap(){
   if(!spatialField||$('responseView').value!=='tap')return;
   if($('tapModelSource').value==='plate'&&!plateConfig.corners){$('tapSummary').textContent='Set four plate corners under Advanced, then apply geometry to generate predicted modes.';return;}
-  if($('tapModelSource').value==='string'&&!stringConfig.endpoints){$('tapSummary').textContent='Mark one visible string segment under Advanced, then apply its assumptions.';return;}
+  if($('tapModelSource').value==='string'&&!hasStringGeometry()){$('tapSummary').textContent='Mark one or more visible string segments under Advanced, then apply their assumptions.';return;}
   const serial=++tapRequest,e=epoch,key=spatialField.key;
   await flushSettings();
   const data=await api('/api/tap',{id:clip.id,revision,key,tap:readTapSettings()});
@@ -41,7 +41,11 @@ async function prepareTap(){
   installPlateModel(data);
   $('tapTime').max=data.settings.cycles;$('tapTime').value=data.settings.cursor_cycle;populateTapSelectors();updateTapLabels();
   const m=data.model,c=data.settings;
-  if(m.kind==='string'){
+  if(m.strings){
+    const solo=m.modes[c.solo_mode],activeStrings=new Set(c.active_modes.map(i=>m.modes[i].string_index));
+    $('tapSummary').textContent=c.motion==='mode'?`Animating ${solo.string_name}, harmonic ${solo.harmonic}, at ${c.clock_hz.toFixed(2)} Hz.`:`Simultaneous relative plucks on ${activeStrings.size} string${activeStrings.size===1?'':'s'} at u=${c.tap_fraction.toFixed(3)} · ${c.active_modes.length} harmonics · one physical clock. A/B probes can be on different strings.`;
+    $('tapModelSummary').textContent=m.strings.map(s=>`${s.name}: ${s.frequency_hz.toFixed(2)} Hz anchor; ${s.reference_amplitude_source_px.toPrecision(3)} source px (${s.amplitude_basis}); ${s.fit_samples} patches; shape correlation ${s.fit_mac===null?'unavailable':s.fit_mac.toFixed(3)}.`).join(' ')+ ' Independent strings; chosen total mass 1 per string, modal mass 0.5. Shared pluck fraction and assumed damping; no bridge/body coupling or force calibration.';
+  }else if(m.kind==='string'){
     $('tapSummary').textContent=c.motion==='mode'?`Animating string M${c.solo_mode+1} at ${c.clock_hz.toFixed(2)} Hz. The video ribbon follows this predicted standing wave.`:`Combined string tap at point ${c.tap_node+1} · ${c.active_modes.map(i=>m.modes[i].frequency_hz.toFixed(1)+' Hz').join(' + ')}. Local nodes suppress participation in the corresponding harmonic.`;
     $('tapModelSummary').textContent=`Fixed-end uniform string · assumed anchor harmonic ${m.anchor_mode+1} · visible fractions ${m.string.span_start}–${m.string.span_end} · B=${m.string.inharmonicity}. Antinode scale ${m.reference_amplitude_source_px.toPrecision(3)} source px (${m.amplitude_basis}). ${m.fit_samples} accepted original patches; complex shape correlation ${m.fit_mac===null?'unavailable':m.fit_mac.toFixed(3)} is descriptive, not confidence. Modal mass = 0.5 with chosen total mass 1. The guitar body and neighboring strings are omitted.`;
   }else if(m.kind==='plate'){

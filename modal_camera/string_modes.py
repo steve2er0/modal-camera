@@ -16,6 +16,35 @@ from .response import harmonic_fit
 def validate_string_settings(data):
     if not isinstance(data, dict):
         raise ValueError('String assumptions must be an object.')
+    if 'strings' in data:
+        entries = data['strings']
+        if not isinstance(entries, list) or not 1 <= len(entries) <= 6:
+            raise ValueError('Select between one and six guitar strings.')
+        strings = []
+        for i, entry in enumerate(entries):
+            if not isinstance(entry, dict) or 'strings' in entry:
+                raise ValueError('Each string must contain its own geometry and assumptions.')
+            cfg = validate_string_settings(entry)
+            name = entry.get('name', f'String {i+1}')
+            if not isinstance(name, str) or not 1 <= len(name.strip()) <= 32:
+                raise ValueError('Give each string a name of 1–32 characters.')
+            enabled = entry.get('enabled', True)
+            if type(enabled) is not bool:
+                raise ValueError('String enabled must be true or false.')
+            frequency = entry.get('anchor_hz')
+            if frequency is not None:
+                if isinstance(frequency, bool):
+                    raise ValueError('String anchor frequency must be a number, not a checkbox value.')
+                try:
+                    frequency = float(frequency)
+                except (ValueError, TypeError):
+                    raise ValueError('String anchor frequency must be a finite number, or blank for the selected response.') from None
+                if not math.isfinite(frequency) or not 1 <= frequency <= 2000:
+                    raise ValueError('String anchor frequency must be between 1 and 2000 Hz.')
+            strings.append(dict(cfg, name=name.strip(), enabled=enabled, anchor_hz=frequency))
+        if not any(s['enabled'] for s in strings):
+            raise ValueError('Enable at least one string for the combined tap.')
+        return dict(strings=strings)
     result = {}
     for key, default, low, high in [('span_start', 0., 0., .95), ('span_end', 1., .05, 1.),
                                    ('half_width_px', 3., 1., 8.), ('inharmonicity', 0., 0., .05)]:
@@ -67,14 +96,16 @@ def string_frequencies(anchor_hz, anchor_harmonic=1, inharmonicity=0.):
 
 def build_string_model(video, field, data, measurement_settings=None):
     cfg = validate_string_settings(data)
+    if 'strings' in cfg:
+        return build_string_ensemble(video, field, cfg, measurement_settings)
     if cfg['endpoints'] is None:
         raise ValueError('Mark a visible string segment under Advanced before generating string modes.')
     h, w = video.frames.shape[1:3]
     a,b = np.asarray(cfg['endpoints'], float)
     if np.any(np.asarray([a,b]) < 0) or max(a[0],b[0]) >= w or max(a[1],b[1]) >= h:
         raise ValueError('String endpoints must lie inside the analysis image.')
-    if not 0 < field['frequency_hz'] < video.fps/2:
-        raise ValueError('Analyze an observed anchor below the current camera Nyquist frequency first.')
+    if not 0 < field['frequency_hz'] or (field['frequency_hz'] >= video.fps/2 and cfg['amplitude_source_px'] is None):
+        raise ValueError('An anchor at or above camera Nyquist needs an explicit assumed amplitude; it cannot be fitted from this video.')
     tangent = (b-a)/np.linalg.norm(b-a)
     direction = np.array([-tangent[1], tangent[0]])
     component = 0 if field['axis'] == 'x' else 1
@@ -94,8 +125,11 @@ def build_string_model(video, field, data, measurement_settings=None):
         if len(points) < 2:
             raise ValueError('String fitting needs the same stationary reference as the measured field.')
         coords.append(points[-1])
+    # Never fit an aliased anchor, even when an explicit amplitude is supplied.
+    if field['frequency_hz'] >= video.fps/2:
+        coords = []
     traces = track_locations(video,coords) if coords else []
-    reference_trace = traces.pop() if stationary else None
+    reference_trace = traces.pop() if stationary and traces else None
     eligible = []
     for index, trace in zip(np.flatnonzero(track_mask),traces):
         values = trace['d'+field['axis']]
@@ -167,6 +201,18 @@ def string_frame(video,model,maps,q,gain):
     """Warp actual selected-string texture with an iterated inverse mapping."""
     if gain == 0 or not np.any(q):
         return video.frames[0].copy()
+    if 'strings' in model:
+        output = maps['background'].copy()
+        for child_model, child_maps, indices in maps['strings']:
+            output += warped_string_texture(video, child_model, child_maps, q[indices], gain)
+        return np.rint(np.clip(output,0,255)).astype(np.uint8)
+    foreground = warped_string_texture(video,model,maps,q,gain)
+    return np.rint(np.clip(maps['background']+foreground,0,255)).astype(np.uint8)
+
+
+def warped_string_texture(video,model,maps,q,gain):
+    if gain == 0 or not np.any(q):
+        return maps['texture']
     cfg = model['string'];a = np.array(cfg['endpoints'][0]);tangent = maps['tangent']
     sx,sy = maps['xx'].copy(),maps['yy'].copy()
     for _ in range(4):
@@ -177,7 +223,70 @@ def string_frame(video,model,maps,q,gain):
         # mapping stays continuous; the warped source alpha bounds the ribbon.
         sx = (maps['xx']-displacement*maps['projection'][0]/video.metadata['scale_x']).astype(np.float32)
         sy = (maps['yy']-displacement*maps['projection'][1]/video.metadata['scale_y']).astype(np.float32)
-    foreground = cv2.remap(maps['texture'],sx,sy,cv2.INTER_LINEAR,borderMode=cv2.BORDER_CONSTANT)
-    # The ribbon stores a signed texture residual, so the zero-displacement
-    # reconstruction is exactly the original even at its feathered boundary.
-    return np.rint(np.clip(maps['background']+foreground,0,255)).astype(np.uint8)
+    return cv2.remap(maps['texture'],sx,sy,cv2.INTER_LINEAR,borderMode=cv2.BORDER_CONSTANT)
+
+
+def build_string_ensemble(video, field, cfg, measurement_settings=None):
+    """Independent strings, block-diagonal modes, simultaneous relative taps.
+
+    Each string keeps its own fitted/assumed scale. A shared fractional pluck
+    position does not imply one calibrated physical impulse or bridge coupling.
+    """
+    children = []
+    for i, entry in enumerate(cfg['strings']):
+        if not entry['enabled']:
+            continue
+        try:
+            child, maps = build_string_model(video, dict(field,frequency_hz=entry['anchor_hz'] or field['frequency_hz']), entry, measurement_settings)
+        except ValueError as exc:
+            raise ValueError(f"{entry['name']}: {exc}") from None
+        children.append((i, entry, child, maps))
+    count = 8*len(children)
+    modes, nodes, summaries, renderers = [], [], [], []
+    for ordinal, (index, entry, child, maps) in enumerate(children):
+        offset = ordinal*8
+        indices = list(range(offset, offset+8))
+        for mode in child['modes']:
+            modes.append(dict(mode,index=offset+mode['index'],string_index=index,string_name=entry['name'],
+                              harmonic=mode['index']+1,reference_amplitude_source_px=child['reference_amplitude_source_px'],
+                              anchor_frequency_hz=child['frequency_hz']))
+        for node in child['nodes']:
+            basis = [0.]*count
+            basis[offset:offset+8] = node['modes']
+            nodes.append(dict(node,index=index*25+node['index'],local_index=node['index'],string_index=index,
+                              label=f"{entry['name']} · point {node['index']+1}",modes=basis))
+        summaries.append(dict(index=index,name=entry['name'],mode_indices=indices,
+                              anchor_mode=offset+child['anchor_mode'],frequency_hz=child['frequency_hz'],
+                              reference_amplitude_source_px=child['reference_amplitude_source_px'],
+                              amplitude_basis=child['amplitude_basis'],fit_samples=child['fit_samples'],fit_mac=child['fit_mac'],
+                              measured_samples=child['measured_samples'],
+                              geometry=child['string'],projection=child['projection']))
+        renderers.append((child,maps,indices))
+    # Allocate overlapping ribbon residuals once, independent of draw order.
+    # Disabled strings never enter the background reconstruction or the warp.
+    alpha_sum = sum(maps['alpha'] for _,_,_,maps in children)
+    mask = (alpha_sum > 0).astype(np.uint8)*255
+    original = video.frames[0].astype(np.float32)
+    residual = original-cv2.inpaint(video.frames[0],mask,3,cv2.INPAINT_TELEA)
+    background = original.copy()
+    for _,maps,_ in renderers:
+        maps['texture'] = residual*maps['alpha'][...,None]/np.maximum(1,alpha_sum)[...,None]
+        background -= maps['texture']
+    first = children[0][2]
+    model = dict(first, string=cfg, strings=summaries, modes=modes, nodes=nodes,
+                 frequency_hz=min(s['frequency_hz'] for s in summaries),
+                 default_node=children[0][0]*25+first['default_node'],
+                 sample_label='String point',
+                 interpretation='Predicted independent string ensemble with simultaneous relative plucks; not measured higher modes or a coupled guitar model',
+                 assumptions=[
+                     'Each selected string has independent fixed-end sine modes and chosen total mass 1; the combined matrices are block diagonal.',
+                     'Every enabled string is plucked simultaneously at the same full-string fraction, including when that position is outside its visible crop.',
+                     'The shared strength scales separately fitted or user-assumed amplitudes and anchor frequencies; equal relative taps do not imply equal calibrated forces.',
+                     'Per-string anchor frequency and harmonic index are user choices. Blank frequency follows the selected measured response; no guitar tuning is inferred.',
+                     'Anchors at or above camera Nyquist require an explicit assumed amplitude and are never fitted to aliased video samples.',
+                     'All active harmonics share simulation time, damping ratio and playback slowdown; mode animation isolates the selected string harmonic.',
+                     'Bridge/body coupling, energy transfer between strings, strum delay and collisions are omitted.',
+                     'Eight harmonics are retained per enabled string; each string has its own fitted or explicit assumed amplitude scale.',
+                     'Overlapping ribbons share the reconstructed texture residual; close or crossing strings and large gains can produce compositing artifacts.',
+                 ]+[first['assumptions'][i] for i in (0,1,2,3,4,5,6,9)])
+    return model,dict(strings=renderers,background=background,support=alpha_sum>0)

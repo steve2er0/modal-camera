@@ -16,30 +16,42 @@ function syncPlateInputs(){
 }
 function readPlateSettings(){return {string:stringConfig,model_source:$('tapModelSource').value,plate:plateConfig,enabled_modes:plateEnabled,solo_mode:plateSolo,motion:plateMotion};}
 function updatePlateControls(){
+  syncStringRoster();
   const predicted=['plate','string'].includes($('tapModelSource').value);
   $('predictedModesHeading').textContent=$('tapModelSource').value==='string'?'Predicted string harmonics':'Predicted bending modes';$('plateBank').hidden=!predicted;
   const solo=predicted&&plateMotion==='mode';$('tapDamping').disabled=busy||solo;$('tapNode').disabled=busy||solo;
   $('tapStrengthCaption').textContent=solo?'Relative animation amplitude':'Relative tap strength';
+  $('tapNodeCaption').textContent=tapData?.model.strings?'Shared pluck position (u)':'Tap location';
   $('tapCombined').setAttribute('aria-pressed',String(!solo));$('tapCombined').disabled=busy||!tapData;
-  $('plateModeHint').textContent=solo?'Single predicted mode · continuous animation. Choose Combined tap to excite the checked modes together.':'Checked modes share one tap and one physical clock. Animate a row to inspect its shape.';
+  $('plateModeHint').textContent=solo?'Single predicted mode · continuous animation. Choose Combined tap to excite the checked modes together.':tapData?.model.strings?'Combined tap includes checked harmonics on every enabled string. Changing the string shown here only changes this list; all active strings share time and a fractional pluck position.':'Checked modes share one tap and one physical clock. Animate a row to inspect its shape.';
 }
 function installPlateModel(data){
+  $('stringModeSelector').hidden=!(data.model.strings?.length>1);
   if(!['plate','string'].includes(data.model.kind)){updatePlateControls();return;}
   plateEnabled=data.settings.enabled_modes;plateSolo=data.settings.solo_mode;plateMotion=data.settings.motion;
+  const strings=data.model.strings;
+  if(strings){
+    if(!strings.some(s=>s.index===stringModeString))stringModeString=strings[0].index;
+    $('stringModeString').replaceChildren(...strings.map(s=>new Option(`${s.name} · ${s.frequency_hz.toFixed(1)} Hz anchor`,String(s.index))));$('stringModeString').value=stringModeString;
+  }
   const bank=$('plateModes');bank.replaceChildren();
-  for(const m of data.model.modes){
+  for(const m of data.model.modes.filter(m=>!strings||m.string_index===stringModeString)){
     const row=document.createElement('div');row.className='plate-mode'+(plateMotion==='mode'&&plateSolo===m.index?' selected':'');
-    const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.checked=plateEnabled.includes(m.index);check.setAttribute('aria-label',`Include predicted mode ${m.index+1} in combined tap`);
-    check.onchange=()=>{const selected=[...bank.querySelectorAll('input')].flatMap((el,i)=>el.checked?[i]:[]);if(!selected.length){check.checked=true;status('Keep at least one mode enabled for the combined tap.');return;}plateEnabled=selected;plateMotion='tap';scheduleTap();};
+    const modeName=strings?`${m.string_name} harmonic ${m.harmonic}`:`predicted mode ${m.index+1}`;
+    const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.checked=plateEnabled.includes(m.index);check.setAttribute('aria-label',`Include ${modeName} in combined tap`);
+    check.onchange=()=>{const selected=new Set(plateEnabled);check.checked?selected.add(m.index):selected.delete(m.index);if(!selected.size){check.checked=true;status('Keep at least one mode enabled for the combined tap.');return;}plateEnabled=[...selected].sort((a,b)=>a-b);plateMotion='tap';scheduleTap();};
     const thumbnail=document.createElement('canvas');thumbnail.width=75;thumbnail.height=39;thumbnail.setAttribute('aria-hidden','true');
     const ctx=thumbnail.getContext('2d');m.thumbnail.forEach((line,y)=>line.forEach((value,x)=>{const t=Math.min(1,Math.abs(value));ctx.fillStyle=value>=0?`rgb(${Math.round(40+215*t)},${Math.round(70+131*t)},${Math.round(91+43*t)})`:`rgb(${Math.round(40+14*t)},${Math.round(70+90*t)},${Math.round(91+147*t)})`;ctx.fillRect(x*3,y*3,3,3);}));
-    const text=document.createElement('span');text.textContent=`M${m.index+1} · ${m.frequency_hz.toFixed(1)} Hz${m.anchor?' · anchor':''}${data.model.kind==='string'&&m.frequency_hz>=clip.metadata.nyquist?' · predicted > Nyquist':''}`;
+    const text=document.createElement('span');text.textContent=`${strings?'H'+m.harmonic:'M'+(m.index+1)} · ${m.frequency_hz.toFixed(1)} Hz${m.anchor?' · anchor':''}${data.model.kind==='string'&&m.frequency_hz>=clip.metadata.nyquist?' · predicted ≥ Nyquist':''}`;
     label.append(check,thumbnail,text);
-    const animate=document.createElement('button');animate.className='secondary';animate.textContent='Animate';animate.setAttribute('aria-label',`Animate predicted mode ${m.index+1} at ${m.frequency_hz.toFixed(1)} Hz`);animate.onclick=()=>{plateSolo=m.index;plateMotion='mode';scheduleTap(true);};
+    const animate=document.createElement('button');animate.className='secondary';animate.textContent='Animate';animate.setAttribute('aria-label',`Animate ${modeName} at ${m.frequency_hz.toFixed(1)} Hz`);animate.onclick=()=>{plateSolo=m.index;plateMotion='mode';scheduleTap(true);};
     row.append(label,animate);bank.append(row);
   }
   const m=data.model;
-  if(m.kind==='string'){
+  if(strings){
+    const s=strings.find(s=>s.index===stringModeString);
+    $('plateFit').textContent=`${strings.length} enabled string${strings.length===1?'':'s'} · ${plateEnabled.length} checked harmonics in combined tap. Showing ${s.name}: ${s.fit_samples} usable original patches · shape correlation ${s.fit_mac===null?'unavailable':s.fit_mac.toFixed(3)}. Higher harmonics and full-string supports are assumptions.`;
+  }else if(m.kind==='string'){
     $('plateFit').textContent=`M${m.anchor_mode+1} is the assumed anchor at ${m.frequency_hz.toFixed(2)} Hz · ${m.fit_samples} usable original patches · shape correlation ${m.fit_mac===null?'unavailable':m.fit_mac.toFixed(3)}. ${m.fit_mac!==null&&m.fit_mac<.6?'Weak visible-shape agreement; review the selected string and span. ':''}Higher harmonics are predictions; full-string supports and the visible crop are assumptions.`;
   }else{
   $('plateFit').textContent=`M${m.anchor_mode+1} anchored to ${m.frequency_hz.toFixed(3)} Hz · visible-shape MAC ${m.fit_mac.toFixed(3)} across ${m.fit_samples} patches. ${m.fit_mac<.6?'Weak match: review geometry and mounting under Advanced. ':''}${m.max_basis_change_percent>2?'Mounting needs further numerical refinement; see Advanced. ':''}All other frequencies are predictions, including those above the camera limit.`;
@@ -50,7 +62,7 @@ $('tapModelSource').onchange=()=>{
   tapSelection={tap_node:null,probe_a:null,probe_b:null};plateMotion='tap';plateEnabled=null;plateSolo=null;
   if(!plateConfig.corners){plateConfig.projection_angle_deg=spatialField?.axis==='x'?0:90;syncPlateInputs();}
   if($('tapModelSource').value==='plate'&&!plateConfig.corners){$('advanced').open=true;$('plateGeometry').scrollIntoView({behavior:'smooth',block:'center'});}
-  if($('tapModelSource').value==='string'&&!stringConfig.endpoints){$('advanced').open=true;$('stringGeometry').scrollIntoView({behavior:'smooth',block:'center'});}
+  if($('tapModelSource').value==='string'&&!hasStringGeometry()){$('advanced').open=true;$('stringGeometry').scrollIntoView({behavior:'smooth',block:'center'});}
   scheduleTap();updatePlateControls();
 };
 $('tapCombined').onclick=()=>{plateMotion='tap';scheduleTap();};

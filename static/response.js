@@ -62,7 +62,8 @@ function updateResponseHelp(){
   if(view==='tap'){$('renderLabel').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} Hz anchor · ASSUMED MODEL`:'ANALYZE RESPONSE';$('responseHelp').textContent='Observed standing shape or predicted plate/string modes. Damping, geometry and mounting are assumptions; higher modes and simulated taps are not additional measurements.';}
   if(view==='tap'&&['plate','string'].includes(tapData?.model.kind)){
     const c=tapData.settings;
-    $('visualizationTitle').textContent=c.motion==='mode'?`Predicted M${c.solo_mode+1} · ${c.clock_hz.toFixed(1)} Hz`:`Combined virtual tap · ${c.active_modes.length} modes`;
+    const solo=tapData.model.modes[c.solo_mode],strings=tapData.model.strings;
+    $('visualizationTitle').textContent=c.motion==='mode'?`${strings?solo.string_name+' H'+solo.harmonic:'Predicted M'+(c.solo_mode+1)} · ${c.clock_hz.toFixed(1)} Hz`:`Combined virtual tap · ${strings?new Set(c.active_modes.map(i=>tapData.model.modes[i].string_index)).size+' strings':c.active_modes.length+' modes'}`;
     $('renderLabel').textContent=`${tapData.model.frequency_hz.toFixed(3)} Hz anchor · PREDICTED`;
   }
   updateExports();if(hoverNode!==null&&spatialField)inspectNode(hoverNode);

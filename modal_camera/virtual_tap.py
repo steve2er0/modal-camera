@@ -40,14 +40,15 @@ def validate_tap_settings(data):
         if result['motion'] not in ('tap', 'mode'):
             raise ValueError('Choose a combined tap or a single mode animation.')
         result['enabled_modes'] = data.get('enabled_modes')
+        mode_limit = 48 if result['model_source'] == 'string' else 8
         if result['enabled_modes'] is not None:
             modes = result['enabled_modes']
-            if (not isinstance(modes, list) or not 1 <= len(modes) <= 8
-                    or any(type(i) is not int or not 0 <= i < 8 for i in modes) or len(set(modes)) != len(modes)):
-                raise ValueError('Enable at least one of the eight predicted modes.')
+            if (not isinstance(modes, list) or not 1 <= len(modes) <= mode_limit
+                    or any(type(i) is not int or not 0 <= i < mode_limit for i in modes) or len(set(modes)) != len(modes)):
+                raise ValueError('Enable at least one valid predicted mode.')
         result['solo_mode'] = data.get('solo_mode')
-        if result['solo_mode'] is not None and (type(result['solo_mode']) is not int or not 0 <= result['solo_mode'] < 8):
-            raise ValueError('Choose one of the eight predicted modes to animate.')
+        if result['solo_mode'] is not None and (type(result['solo_mode']) is not int or not 0 <= result['solo_mode'] < mode_limit):
+            raise ValueError('Choose a valid predicted mode to animate.')
     if result['direction'] not in (-1, 1):
         raise ValueError('Virtual tap direction must be +1 or -1 along the selected image axis.')
     result['cursor_cycle'] = min(result['cursor_cycle'], result['cycles'])
@@ -127,7 +128,12 @@ def configure(model, data):
         other = [n for n in valid.values() if n['index'] != settings['probe_a']]
         opposite = [n for n in other if n['shape'][component]*a < 0]
         settings['probe_b'] = max(opposite or other, key=lambda n: abs(n['shape'][component]))['index']
-        if model.get('kind') == 'string' and not opposite:
+        if model.get('strings'):
+            a_node = valid[settings['probe_a']]
+            other_strings = [n for n in other if n['string_index'] != a_node['string_index']]
+            if other_strings:
+                settings['probe_b'] = min(other_strings,key=lambda n:abs(n['u']-a_node['u']))['index']
+        elif model.get('kind') == 'string' and not opposite:
             target = model['string']['span_start']+.25*(model['string']['span_end']-model['string']['span_start'])
             settings['probe_b'] = min(other,key=lambda n:abs(n['u']-target))['index']
     settings['participation'] = valid[settings['tap_node']]['shape'][component]
@@ -135,8 +141,14 @@ def configure(model, data):
         kind = model['kind']
         settings.update(model_source=kind, **{kind:model[kind]})
         settings.setdefault('motion', 'tap')
-        settings['enabled_modes'] = settings.get('enabled_modes') or list(range(model['anchor_mode'], min(8, model['anchor_mode']+4)))
+        defaults = ([i for s in model['strings'] for i in range(s['anchor_mode'],min(s['mode_indices'][-1]+1,s['anchor_mode']+3))]
+                    if model.get('strings') else list(range(model['anchor_mode'], min(8, model['anchor_mode']+4))))
+        settings['enabled_modes'] = settings.get('enabled_modes') or defaults
         settings['solo_mode'] = model['anchor_mode'] if settings.get('solo_mode') is None else settings['solo_mode']
+        if any(i >= len(model['modes']) for i in settings['enabled_modes']+[settings['solo_mode']]):
+            raise ValueError('These mode selections belong to a different string model. Regenerate the modes.')
+        if model.get('strings'):
+            settings['tap_fraction'] = valid[settings['tap_node']]['u']
         settings['active_modes'] = [settings['solo_mode']] if settings['motion'] == 'mode' else settings['enabled_modes']
         settings['clock_hz'] = model['modes'][settings['solo_mode']]['frequency_hz'] if settings['motion'] == 'mode' else model['frequency_hz']
         settings['max_frequency_hz'] = max(model['modes'][i]['frequency_hz'] for i in settings['active_modes'])
@@ -206,12 +218,23 @@ def tap_display_frame(video, model, maps, settings, time_s, gain=10.):
     rgb = tap_frame(video,model,maps,settings,time_s,gain)
     if model.get('kind') == 'string':
         q = plate_coordinates(model,settings,time_s)
-        points = []
-        for node in model['nodes']:
-            displacement = float(np.dot(node['modes'],q))*gain
-            points.append((round(node['x']+displacement*maps['projection'][0]/video.metadata['scale_x']),
-                           round(node['y']+displacement*maps['projection'][1]/video.metadata['scale_y'])))
-        cv2.polylines(rgb,[np.array(points,np.int32)],False,(54,207,238),1,cv2.LINE_AA)
+        groups = model.get('strings') or [dict(index=None,projection=maps['projection'])]
+        for group in groups:
+            points = []
+            for node in model['nodes']:
+                if node.get('string_index') != group['index']:
+                    continue
+                displacement = float(np.dot(node['modes'],q))*gain
+                points.append((round(node['x']+displacement*group['projection'][0]/video.metadata['scale_x']),
+                               round(node['y']+displacement*group['projection'][1]/video.metadata['scale_y'])))
+            cv2.polylines(rgb,[np.array(points,np.int32)],False,(54,207,238),1,cv2.LINE_AA)
+            if model.get('strings') and settings['motion'] == 'tap':
+                cfg = group['geometry']; u = settings['tap_fraction']
+                if cfg['span_start'] <= u <= cfg['span_end']:
+                    s = (u-cfg['span_start'])/(cfg['span_end']-cfg['span_start'])
+                    a,b = np.array(cfg['endpoints'])
+                    point = tuple(np.rint(a+s*(b-a)).astype(int))
+                    cv2.putText(rgb,'T',point,cv2.FONT_HERSHEY_SIMPLEX,.35,(255,201,134),1,cv2.LINE_AA)
     if model.get('kind') == 'plate':
         # A light signed overlay makes nodes/lobes readable while the actual
         # grid texture moves under it. Zero displacement leaves the texture alone.
@@ -247,12 +270,19 @@ def plate_coordinates(model, settings, time_s):
     zeta = settings['damping_percent']/100
     for i in settings['active_modes']:
         mode = model['modes'][i]
+        reference = mode.get('reference_amplitude_source_px',model['reference_amplitude_source_px'])
         omega = 2*math.pi*mode['frequency_hz']
         if settings['motion'] == 'mode':
             result[i] = settings['strength']*settings['direction']*reference*np.sin(omega*t)
         else:
             wd = omega*math.sqrt(1-zeta*zeta)
-            velocity = impulse*nodes[settings['tap_node']]['modes'][i]/mode['modal_mass']
+            if model.get('strings'):
+                local_impulse = settings['strength']*settings['direction']*2*math.pi*mode['anchor_frequency_hz']*reference*.5
+                participation = math.sin(mode['harmonic']*math.pi*settings['tap_fraction'])
+            else:
+                local_impulse = impulse
+                participation = nodes[settings['tap_node']]['modes'][i]
+            velocity = local_impulse*participation/mode['modal_mass']
             result[i] = velocity/wd*np.exp(-zeta*omega*t)*np.sin(wd*t)
     return result
 
@@ -272,6 +302,8 @@ def simulate_plate(model, settings):
         node = nodes[settings[key]]
         contributions = q*np.array(node['modes'])[:, None]*model['projection'][component]
         traces.append(dict(label=label, node=node['index'], x=node['x'], y=node['y'],
+                           sample=node.get('label',f"{model.get('sample_label','Grid')} {node['index']+1}"),
+                           string_index=node.get('string_index'),
                            displacement_source_px=contributions.sum(axis=0).tolist()))
     masses = np.array([m['modal_mass'] for m in model['modes']])
     omega = 2*math.pi*np.array([m['frequency_hz'] for m in model['modes']])
@@ -282,5 +314,5 @@ def simulate_plate(model, settings):
                 playback_slowdown=clock/settings['effective_display_cps'],
                 seconds_to_ten_percent=math.log(10)/(zeta*2*math.pi*min(model['modes'][i]['frequency_hz'] for i in settings['active_modes'])),
                 normalized_matrices=dict(M=np.diag(masses).tolist(), C=np.diag(2*zeta*omega*masses).tolist(),
-                                         K=np.diag(omega**2*masses).tolist(), units='Chosen uniform areal mass = 1; peak-normalized shapes; no kg, N/m or force calibration'),
+                                         K=np.diag(omega**2*masses).tolist(), units=('Chosen total mass = 1 per independent string; ' if model.get('kind') == 'string' else 'Chosen uniform areal mass = 1; ')+'peak-normalized shapes; no kg, N/m or force calibration'),
                 units='Model-predicted source-pixel projection; relative impulse; display gain excluded')
