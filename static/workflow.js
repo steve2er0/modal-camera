@@ -64,6 +64,7 @@ function showTimebase(){
   $('timebaseLabel').textContent=timingConfirmed?(assumed?'Capture rate assumed; frame mapping unverified. Playback speed is unchanged.':'Using encoded video time. Physical Hz requires verified capture timing.'):'Confirm encoded timing or enter the original capture rate before analysis.';
   $('captureControls').hidden=$('timingMode').value!=='capture';$('timingInputs').hidden=timingConfirmed&&!editingTiming;$('editTiming').hidden=!timingConfirmed;$('editTiming').textContent=editingTiming?'Done':'Change';
   document.querySelector('.timing-panel').classList.toggle('compact',timingConfirmed&&!editingTiming);
+  document.querySelector('.timing-panel').dataset.assumed=String(assumed);
   $('setTimebase').textContent=timingConfirmed?'Timing confirmed':'Confirm timing';
 }
 function updateExports(){

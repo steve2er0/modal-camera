@@ -61,6 +61,8 @@ This filters complete original displacement traces after linear detrending, usin
 
 Confirmed timing occupies a compact full-width strip. On desktop the PSD sits beside target/band controls, avoiding a tall spectrum tile next to a short timing tile. Narrow screens stack these sections. Original and response video tiles retain equal dimensions and the recording's aspect ratio.
 
+The **Cyan Lab** theme adds near-black surfaces, cyan/violet action gradients, restrained glow and a little translucent panel depth. The existing step-by-step layout and equal-sized previews remain in place. Scientific heatmap, amplitude, phase and signed-displacement color scales are unchanged. Hover effects respect reduced-motion preferences.
+
 ### Advanced
 
 Expand **Advanced** for X/Y axis, calibration in mm per source pixel, phase reference, stationary-camera translation subtraction, independent band edges, added magnification gain, manual points, ROI, spectral display options and method details, quality notes and point traces. Turn off **Center the band on the target frequency** to use an independent visualization band. Measurements always use original frames.

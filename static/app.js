@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const colors=['#76e0c2','#80b7ee','#ffc986','#df9ef6','#fb8eaa','#bbd587','#e9b489','#a4c9cf'];
+const colors=['#36cfee','#80b7ee','#ffc986','#df9ef6','#fb8eaa','#bbd587','#e9b489','#a4c9cf'];
 let clip=null,points=[],roi=null,mode='inspect',analysis=null,analysisKey=null,renderKey=null,frame=0,playing=false,busy=false,epoch=0;
 let originalImage=null,amplifiedImage=null,frameRequest=0,fetchingFrame=false,drag=null;
 let revision=null,timingConfirmed=false,dirty=false,stopRequested=false,cursor=[32,32];
@@ -11,7 +11,7 @@ async function runSpectrum(){
   const result=await api('/api/spectrum',{id:clip.id,revision});
   displacementSpectrum=result;spectrumIdentity=currentSpectrumIdentity();revision=result.revision;if(result.sampling)installSampling(result.sampling);drawSpectrum();
 }
-const status=message=>{$('status').textContent=message;$('operationState').textContent=clip?message:'';};
+const status=message=>{$('status').textContent=message;$('status').title=message;$('operationState').textContent=clip?message:'';};
 function showError(e){$('error').hidden=false;$('error').textContent=e.message||String(e);status('Please correct the highlighted setting or try again.');if(e.field){const field=$(e.field);field.setAttribute('aria-invalid','true');if(field.closest('#advanced'))$('advanced').open=true;field.focus();}}
 function clearError(){$('error').hidden=true;for(const el of document.querySelectorAll('[aria-invalid]'))el.removeAttribute('aria-invalid');}
 async function api(url,data,form=false){
@@ -107,8 +107,9 @@ function drawResults(){
   $('phaseLabel').textContent=`${analysis.axis.toUpperCase()} · ${analysis.frequency_hz.toFixed(3)} ANALYSIS-TIME Hz · PHASE vs P1`;
   $('traceHelp').textContent=`${analysis.units}; fit excludes first/last ${analysis.fit_edge_excluded_s.toFixed(2)} s and rejected samples. ${analysis.reference_last?'Stationary last-point translation subtracted. ':''}Spectra use complete original traces; rejected samples are not filled.`;
 }
+function plotColor(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
 function plotBase(canvas,xlabel,ylabel){
-  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,L=58,R=18,T=18,B=36;ctx.fillStyle='#121e29';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#304453';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,H-B);ctx.lineTo(W-R,H-B);ctx.stroke();ctx.fillStyle='#9ab0c1';ctx.font='11px sans-serif';ctx.fillText(ylabel,10,12);ctx.fillText(xlabel,W-160,H-7);return {ctx,W,H,L,R,T,B,xw:W-L-R,yh:H-T-B};
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,L=58,R=18,T=18,B=36;ctx.fillStyle=plotColor('--plot-bg');ctx.fillRect(0,0,W,H);ctx.strokeStyle=plotColor('--line');ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,H-B);ctx.lineTo(W-R,H-B);ctx.stroke();ctx.fillStyle=plotColor('--plot-label');ctx.font='11px sans-serif';ctx.fillText(ylabel,10,12);ctx.fillText(xlabel,W-160,H-7);return {ctx,W,H,L,R,T,B,xw:W-L-R,yh:H-T-B};
 }
 function drawSpectrum(){
   const spectrum=displacementSpectrum;
@@ -125,10 +126,10 @@ function drawSpectrum(){
   $('spectrumDetails').replaceChildren();
   if(!clip)return;
   const maxF=clip.metadata.nyquist,toX=f=>L+f/maxF*xw,lo=Number($('low').value),hi=Number($('high').value);
-  ctx.fillStyle='#76e0c21e';ctx.fillRect(toX(lo),T,toX(hi)-toX(lo),yh);
-  ctx.strokeStyle='#76e0c2';ctx.lineWidth=2;
+  ctx.fillStyle=plotColor('--cyan')+'18';ctx.fillRect(toX(lo),T,toX(hi)-toX(lo),yh);
+  ctx.strokeStyle=plotColor('--cyan');ctx.lineWidth=2;
   for(const edge of [lo,hi]){ctx.beginPath();ctx.moveTo(toX(edge),T);ctx.lineTo(toX(edge),H-B);ctx.stroke();ctx.fillRect(toX(edge)-4,T+8,8,19);}
-  ctx.fillStyle='#9ab0c1';for(let i=0;i<=6;i++){const f=i*maxF/6;const label=f.toFixed(1);ctx.fillText(label,Math.min(W-ctx.measureText(label).width-4,toX(f)-8),H-B+17);}
+  ctx.fillStyle=plotColor('--plot-label');for(let i=0;i<=6;i++){const f=i*maxF/6;const label=f.toFixed(1);ctx.fillText(label,Math.min(W-ctx.measureText(label).width-4,toX(f)-8),H-B+17);}
   if(spectrum?.spectrum_available){
     const key=psd?'psd_px2_per_hz':'spectrum_px';
     const factor=psd?scale*scale:scale;
@@ -140,8 +141,8 @@ function drawSpectrum(){
     const toY=value=>H-B-(logarithmic?(Math.max(lower,Math.log10(Math.max(1e-30,value)))-lower)/(upper-lower):value/upper)*yh;
     for(let i=0;i<=3;i++){
       const tick=lower+(upper-lower)*i/3,y=H-B-i*yh/3;
-      ctx.fillStyle='#9ab0c1';ctx.fillText(logarithmic?`1e${Math.round(tick)}`:psd?tick.toExponential(1):tick.toFixed(2),7,y+3);
-      ctx.strokeStyle='#243746';ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(W-R,y);ctx.stroke();
+      ctx.fillStyle=plotColor('--plot-label');ctx.fillText(logarithmic?`1e${Math.round(tick)}`:psd?tick.toExponential(1):tick.toFixed(2),7,y+3);
+      ctx.strokeStyle=plotColor('--plot-grid');ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(W-R,y);ctx.stroke();
     }
     spectrum.points.forEach((point,j)=>{
       if(point[key]){
@@ -161,7 +162,7 @@ function drawSpectrum(){
     for(const peak of spectrum.psd_peaks){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=peak.frequency_hz.toFixed(2)+' Hz';button.disabled=busy;button.title='Select this PSD peak as the target frequency';button.onclick=()=>{$('frequency').value=peak.frequency_hz.toFixed(3);targetChanged();};$('spectrumLegend').append(button);}
     $('spectralHelp').textContent=`One-sided full-record Hann periodogram · linear detrend · ${m.duration_s.toFixed(3)} s record · Hann ENBW ${m.enbw_hz.toFixed(3)} Hz. Mean of individual PSDs, so opposite-phase motion does not cancel. No segment averaging, zero padding or gap filling. PSD uses original displacement, independent of target, band and magnification; ${m.timing_basis}. Camera-reference subtraction: ${spectrum.reference_last?'last selected point (excluded from mean)':'off'}. ${highpass?`High-pass ${highpass} Hz: fourth-order Butterworth in SOS form, forward-backward with odd reflection padding, after linear detrending. Zero phase; two-pass gain is −6.02 dB at the cutoff. Edge transients and attenuation near the cutoff remain; this does not establish that suppressed motion was camera jitter. Applied only to PSD and amplitude spectrum; fits, point traces and response videos retain original motion.`:'High-pass off.'} Peak bins guide selection; they do not identify structural modes.`;
   }else{
-    ctx.fillStyle='#96acbd';ctx.fillText(spectrum?'PSD withheld: incomplete tracks':timingConfirmed?'Measure PSD to see peaks':'Confirm timing to see peaks',L+8,T+52);
+    ctx.fillStyle=plotColor('--plot-label');ctx.fillText(spectrum?'PSD withheld: incomplete tracks':timingConfirmed?'Measure PSD to see peaks':'Confirm timing to see peaks',L+8,T+52);
     const m=spectrum?.psd_metadata;
     $('spectrumSummary').textContent=m?`PSD withheld: 0/${m.total_trace_count} complete tracks. Choose another point or region on Original.`:timingConfirmed?'Measure the original motion, then click a peak or enter a frequency.':'Confirm timing to measure the frequency content.';
     $('spectralHelp').textContent='PSD uses original tracked X/Y displacement, not image brightness or magnified motion. Traces with rejected samples are withheld.';
@@ -180,9 +181,9 @@ function drawTrace(){
   const c=$('tracePlot'),p=plotBase(c,'Analysis time / s','Displacement / source px'),{ctx,W,H,L,R,T,B,xw,yh}=p;if(!analysis||!clip)return;
   const values=analysis.points.flatMap(point=>point['d'+analysis.axis].filter(x=>x!==null));const maxY=Math.max(.1,...values.map(Math.abs))*1.15;
   const toX=t=>L+t/(clip.metadata.duration)*xw,toY=y=>T+yh/2-y/(2*maxY)*yh;
-  ctx.strokeStyle='#304453';ctx.beginPath();ctx.moveTo(L,toY(0));ctx.lineTo(W-R,toY(0));ctx.stroke();
-  for(let i=0;i<=4;i++){const t=i*clip.metadata.duration/4;ctx.fillStyle='#9ab0c1';ctx.fillText(t.toFixed(1),toX(t)-5,H-B+17);}
-  for(const v of [-maxY,0,maxY]){ctx.fillStyle='#9ab0c1';ctx.fillText(v.toFixed(2),8,toY(v)+3);}
+  ctx.strokeStyle=plotColor('--line');ctx.beginPath();ctx.moveTo(L,toY(0));ctx.lineTo(W-R,toY(0));ctx.stroke();
+  for(let i=0;i<=4;i++){const t=i*clip.metadata.duration/4;ctx.fillStyle=plotColor('--plot-label');ctx.fillText(t.toFixed(1),toX(t)-5,H-B+17);}
+  for(const v of [-maxY,0,maxY]){ctx.fillStyle=plotColor('--plot-label');ctx.fillText(v.toFixed(2),8,toY(v)+3);}
   analysis.points.forEach((point,j)=>{ctx.strokeStyle=colors[j];ctx.lineWidth=1.5;ctx.beginPath();let active=false;point['d'+analysis.axis].forEach((value,i)=>{if(value===null){active=false;return;}const x=toX(analysis.time[i]),y=toY(value);if(active)ctx.lineTo(x,y);else ctx.moveTo(x,y);active=true;});ctx.stroke();});
   ctx.strokeStyle='#e9f0f3';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(toX(frame/clip.metadata.fps),T);ctx.lineTo(toX(frame/clip.metadata.fps),H-B);ctx.stroke();
 }

@@ -1,0 +1,128 @@
+{
+  "appearance": "Cyan Lab with Prism depth",
+  "layout": "Original step-by-step layout restored",
+  "browser": "Codex in-app browser",
+  "desktop": {
+    "advancedOpen": false,
+    "contentWidth": 999,
+    "frequency": "94.872",
+    "psd": "Selected points \u00b7 1/1 tracks \u00b7 \u0394f 0.513 Hz \u00b7 HP 10 Hz \u00b7 peak 94.87 Hz.",
+    "setupAboveVideos": true,
+    "source": "PSD: One point (232, 64 analysis px)",
+    "videoRects": [
+      {
+        "height": 241.140625,
+        "top": 990.796875,
+        "width": 429.5
+      },
+      {
+        "height": 241.140625,
+        "top": 990.796875,
+        "width": 429.5
+      }
+    ],
+    "width": 999
+  },
+  "mobile": {
+    "contentWidth": 390,
+    "videoRects": [
+      {
+        "height": 98.125,
+        "top": 1553.890625,
+        "width": 157
+      },
+      {
+        "height": 98.125,
+        "top": 1561.0859375,
+        "width": 157
+      }
+    ],
+    "width": 390
+  },
+  "demo": {
+    "advancedOpen": false,
+    "exportsEnabled": true,
+    "frequency": "7",
+    "psd": "Selected points \u00b7 1/1 tracks \u00b7 \u0394f 0.167 Hz \u00b7 peak 3.00 Hz.",
+    "result": "Ready",
+    "videoWidths": [
+      570,
+      570
+    ],
+    "view": "modal"
+  },
+  "highpass_checked": true,
+  "export_options": [
+    {
+      "enabled": true,
+      "kind": "heatmap"
+    },
+    {
+      "enabled": true,
+      "kind": "isolated"
+    },
+    {
+      "enabled": true,
+      "kind": "modal"
+    },
+    {
+      "enabled": true,
+      "kind": "analysis"
+    },
+    {
+      "enabled": true,
+      "kind": "samples"
+    },
+    {
+      "enabled": true,
+      "kind": "traces"
+    }
+  ],
+  "browser_errors": [],
+  "structural_checks": {
+    "original_control_containers": 116,
+    "original_layout_css_preserved": true,
+    "active_plate_session_unchanged": {
+      "settings": true,
+      "ui": true,
+      "render_key": true,
+      "field_key": true,
+      "spectrum_key": true,
+      "analysis_key": true
+    }
+  },
+  "python_regression_tests": {
+    "passed": 112,
+    "elapsed_seconds": 66.13
+  },
+  "decoded_video_exports": [
+    {
+      "filename": "modal-camera-6p5-7p5Hz-heatmap.mp4",
+      "decoded_frames": 360,
+      "playback_fps": 60.0,
+      "frame_size": [
+        616,
+        640
+      ]
+    },
+    {
+      "filename": "modal-camera-6p5-7p5Hz-isolated.mp4",
+      "decoded_frames": 360,
+      "playback_fps": 60.0,
+      "frame_size": [
+        616,
+        640
+      ]
+    },
+    {
+      "filename": "modal-camera-7Hz-modal.mp4",
+      "decoded_frames": 120,
+      "playback_fps": 30.0,
+      "frame_size": [
+        616,
+        640
+      ]
+    }
+  ],
+  "export_download_validation": "All six export types downloaded during Cyan Lab checks; final restored layout retains the original export controls and handlers."
+}
