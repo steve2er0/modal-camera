@@ -24,6 +24,7 @@ from modal_camera.video_export import export_metadata, export_frames, write_mp4,
 from modal_camera.session import defaults, validate_settings, validate_ui, signature
 from modal_camera.virtual_tap import build_model, simulate, configure, tap_display_frame
 from modal_camera.plate_modes import build_plate_model, validate_plate_settings
+from modal_camera.string_modes import build_string_model, validate_string_settings
 
 ROOT = Path(__file__).resolve().parent
 app = Flask(__name__)
@@ -196,9 +197,26 @@ def load():
 @app.post('/api/demo')
 def demo():
     kind = (request.get_json(silent=True) or {}).get('kind','clean')
-    if kind not in ('clean','dropout'):
+    if kind not in ('clean','dropout','guitar'):
         raise ValueError('Unknown demo.')
     with lock:
+        if kind == 'guitar':
+            path = ROOT/'data/examples/guitar.mp4'
+            if not path.is_file():
+                raise ValueError('The optional MIT guitar demo is not installed locally. Open a guitar recording with Open video instead.')
+            video = decode_video(path)
+            warnings = [w for w in video.warnings if not w.startswith('Frequencies use encoded video time.')]
+            warnings.append('Analysis frequencies use the MIT paper\'s 600 fps capture rate with an assumed one-frame-per-sample mapping; physical timing remains unverified.')
+            video = replace(video,fps=600.,encoded_fps=video.encoded_fps or video.fps,
+                            timing_basis='user-assumed capture time: one frame per captured sample',warnings=warnings)
+            install_clip(video)
+            w,h = video.metadata['width'],video.metadata['height']
+            state['settings'] = validate_settings(dict(defaults(),frequency=80.,low=72.,high=92.,linked=False,
+                                        spectrum_source='point',spectrum_point=[min(w-17,max(16,400*w/424)),min(h-17,max(16,88*h/188))],spectrum_highpass_hz=5.),video)
+            state['ui'] = validate_ui(dict(view='tap',timing_mode='capture',timing_confirmed=True,modal_gain=19,
+                                          tap=dict(model_source='string',strength=3,enabled_modes=[0,1,2],
+                                                   string=dict(endpoints=[[58*w/424,25*h/188],[423*w/424,83*h/188]],span_end=.5))),len(video.frames))
+            return jsonify(id=state['id'],metadata=video.metadata,revision=state['revision'],settings=state['settings'],ui=state['ui'])
         demos = ROOT/'demo_videos'
         if not (demos/'known_motion.avi').exists():
             write_demos(demos)
@@ -353,13 +371,18 @@ def current_tap(key, options=None):
     if not isinstance(options, dict):
         raise ValueError('Virtual tap settings must be an object.')
     source = options.get('model_source', 'observed')
-    if source not in ('observed', 'plate'):
-        raise ValueError('Choose the observed response or predicted plate model.')
-    assumptions = validate_plate_settings(options.get('plate', {})) if source == 'plate' else None
+    if source not in ('observed', 'plate','string'):
+        raise ValueError('Choose an observed response, predicted plate, or tensioned string.')
+    assumptions = (validate_plate_settings(options.get('plate', {})) if source == 'plate' else
+                   validate_string_settings(options.get('string', {})) if source == 'string' else None)
     cache_key = hashlib.sha256(json.dumps([key, source, assumptions], sort_keys=True).encode()).hexdigest()[:16]
     if state.get('tap_model') is None or state.get('tap_model_key') != cache_key:
-        model, maps = (build_plate_model(state['video'], state['field'], assumptions) if source == 'plate'
-                       else build_model(state['video'],state['field']))
+        if source == 'string':
+            model,maps = build_string_model(state['video'],state['field'],assumptions,state['settings'])
+        elif source == 'plate':
+            model,maps = build_plate_model(state['video'], state['field'], assumptions)
+        else:
+            model,maps = build_model(state['video'],state['field'])
         model['key'] = cache_key
         state.update(tap_model=model,tap_maps=maps,tap_field_key=key,tap_model_key=cache_key)
     return state['tap_model'], state['tap_maps']
@@ -598,7 +621,7 @@ def prepare_data_export():
             writer.writerow(['simulation_time_s','A_simulated_source_px','B_simulated_source_px',
                              'assumed_frequency_hz','assumed_damping_percent','relative_tap_strength','direction',
                              'tap_grid','probe_A_grid','probe_B_grid','interpretation',
-                             'model_source','motion','active_mode_frequencies_hz','geometry_and_mounting_json'])
+                             'model_source','motion','active_mode_frequencies_hz','geometry_and_mounting_json','sample_kind'])
             config = prediction['settings']
             for i,t in enumerate(prediction['time_s']):
                 writer.writerow([t,*[trace['displacement_source_px'][i] for trace in prediction['traces']],
@@ -606,7 +629,7 @@ def prepare_data_export():
                                  config['tap_node']+1,config['probe_a']+1,config['probe_b']+1,model['interpretation'],
                                  model.get('kind', 'observed'), config.get('motion', 'tap'),
                                  ';'.join(str(model['modes'][j]['frequency_hz']) for j in config['active_modes']) if 'modes' in model else str(model['frequency_hz']),
-                                 json.dumps(model.get('plate', {}), sort_keys=True)])
+                                 json.dumps(model.get(model.get('kind','plate'), {}), sort_keys=True),model.get('sample_label','Grid')])
             response = Response(stream.getvalue(),mimetype='text/csv')
         else:
             response = {'analysis':export,'samples':field_csv,'traces':export_csv}[kind](state['id'])

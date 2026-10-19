@@ -4,6 +4,7 @@ const plateDefaults={corners:null,aspect_ratio:2,poisson:.33,mounting:'free',mou
 let plateConfig={...plateDefaults},plateEnabled=null,plateSolo=null,plateMotion='tap',platePicking=false,plateDraft=[];
 const plateInputs={plateAspect:'aspect_ratio',platePoisson:'poisson',plateMountU:'mount_u',plateMountV:'mount_v',plateRadius:'mount_radius',plateStiffness:'mount_stiffness',plateProjection:'projection_angle_deg'};
 function applyPlateDisplay(ui={}){
+  applyStringDisplay(ui);
   plateConfig={...plateDefaults,...ui.plate};plateEnabled=ui.enabled_modes??null;plateSolo=ui.solo_mode??null;plateMotion=ui.motion||'tap';platePicking=false;plateDraft=[];
   $('tapModelSource').value=ui.model_source||'observed';syncPlateInputs();$('plateModes').replaceChildren();updatePlateControls();
 }
@@ -13,16 +14,17 @@ function syncPlateInputs(){
   for(let i=0;i<4;i++)for(let j=0;j<2;j++)$(`plateCorner${i}${j}`).value=plateConfig.corners?.[i][j]??'';
   $('plateGeometryStatus').textContent=plateConfig.corners?'Outline and aspect ratio are assumptions. Apply changes to regenerate the model.':'Pick four plate corners on Original, or enter coordinates below, then apply.';
 }
-function readPlateSettings(){return {model_source:$('tapModelSource').value,plate:plateConfig,enabled_modes:plateEnabled,solo_mode:plateSolo,motion:plateMotion};}
+function readPlateSettings(){return {string:stringConfig,model_source:$('tapModelSource').value,plate:plateConfig,enabled_modes:plateEnabled,solo_mode:plateSolo,motion:plateMotion};}
 function updatePlateControls(){
-  const predicted=$('tapModelSource').value==='plate';$('plateBank').hidden=!predicted;
+  const predicted=['plate','string'].includes($('tapModelSource').value);
+  $('predictedModesHeading').textContent=$('tapModelSource').value==='string'?'Predicted string harmonics':'Predicted bending modes';$('plateBank').hidden=!predicted;
   const solo=predicted&&plateMotion==='mode';$('tapDamping').disabled=busy||solo;$('tapNode').disabled=busy||solo;
   $('tapStrengthCaption').textContent=solo?'Relative animation amplitude':'Relative tap strength';
   $('tapCombined').setAttribute('aria-pressed',String(!solo));$('tapCombined').disabled=busy||!tapData;
-  $('plateModeHint').textContent=solo?'Single predicted mode · continuous animation. Choose Combined tap to excite the checked modes together.':'Checked modes share one tap and one physical clock. Animate a row to inspect its bending shape.';
+  $('plateModeHint').textContent=solo?'Single predicted mode · continuous animation. Choose Combined tap to excite the checked modes together.':'Checked modes share one tap and one physical clock. Animate a row to inspect its shape.';
 }
 function installPlateModel(data){
-  if(data.model.kind!=='plate'){updatePlateControls();return;}
+  if(!['plate','string'].includes(data.model.kind)){updatePlateControls();return;}
   plateEnabled=data.settings.enabled_modes;plateSolo=data.settings.solo_mode;plateMotion=data.settings.motion;
   const bank=$('plateModes');bank.replaceChildren();
   for(const m of data.model.modes){
@@ -31,25 +33,30 @@ function installPlateModel(data){
     check.onchange=()=>{const selected=[...bank.querySelectorAll('input')].flatMap((el,i)=>el.checked?[i]:[]);if(!selected.length){check.checked=true;status('Keep at least one mode enabled for the combined tap.');return;}plateEnabled=selected;plateMotion='tap';scheduleTap();};
     const thumbnail=document.createElement('canvas');thumbnail.width=75;thumbnail.height=39;thumbnail.setAttribute('aria-hidden','true');
     const ctx=thumbnail.getContext('2d');m.thumbnail.forEach((line,y)=>line.forEach((value,x)=>{const t=Math.min(1,Math.abs(value));ctx.fillStyle=value>=0?`rgb(${Math.round(40+215*t)},${Math.round(70+131*t)},${Math.round(91+43*t)})`:`rgb(${Math.round(40+14*t)},${Math.round(70+90*t)},${Math.round(91+147*t)})`;ctx.fillRect(x*3,y*3,3,3);}));
-    const text=document.createElement('span');text.textContent=`M${m.index+1} · ${m.frequency_hz.toFixed(1)} Hz${m.anchor?' · anchor':''}`;
+    const text=document.createElement('span');text.textContent=`M${m.index+1} · ${m.frequency_hz.toFixed(1)} Hz${m.anchor?' · anchor':''}${data.model.kind==='string'&&m.frequency_hz>=clip.metadata.nyquist?' · predicted > Nyquist':''}`;
     label.append(check,thumbnail,text);
     const animate=document.createElement('button');animate.className='secondary';animate.textContent='Animate';animate.setAttribute('aria-label',`Animate predicted mode ${m.index+1} at ${m.frequency_hz.toFixed(1)} Hz`);animate.onclick=()=>{plateSolo=m.index;plateMotion='mode';scheduleTap(true);};
     row.append(label,animate);bank.append(row);
   }
   const m=data.model;
+  if(m.kind==='string'){
+    $('plateFit').textContent=`M${m.anchor_mode+1} is the assumed anchor at ${m.frequency_hz.toFixed(2)} Hz · ${m.fit_samples} usable original patches · shape correlation ${m.fit_mac===null?'unavailable':m.fit_mac.toFixed(3)}. ${m.fit_mac!==null&&m.fit_mac<.6?'Weak visible-shape agreement; review the selected string and span. ':''}Higher harmonics are predictions; full-string supports and the visible crop are assumptions.`;
+  }else{
   $('plateFit').textContent=`M${m.anchor_mode+1} anchored to ${m.frequency_hz.toFixed(3)} Hz · visible-shape MAC ${m.fit_mac.toFixed(3)} across ${m.fit_samples} patches. ${m.fit_mac<.6?'Weak match: review geometry and mounting under Advanced. ':''}${m.max_basis_change_percent>2?'Mounting needs further numerical refinement; see Advanced. ':''}All other frequencies are predictions, including those above the camera limit.`;
+  }
   updatePlateControls();
 }
 $('tapModelSource').onchange=()=>{
   tapSelection={tap_node:null,probe_a:null,probe_b:null};plateMotion='tap';plateEnabled=null;plateSolo=null;
   if(!plateConfig.corners){plateConfig.projection_angle_deg=spatialField?.axis==='x'?0:90;syncPlateInputs();}
   if($('tapModelSource').value==='plate'&&!plateConfig.corners){$('advanced').open=true;$('plateGeometry').scrollIntoView({behavior:'smooth',block:'center'});}
+  if($('tapModelSource').value==='string'&&!stringConfig.endpoints){$('advanced').open=true;$('stringGeometry').scrollIntoView({behavior:'smooth',block:'center'});}
   scheduleTap();updatePlateControls();
 };
 $('tapCombined').onclick=()=>{plateMotion='tap';scheduleTap();};
 $('plateGenerate').onclick=()=>scheduleTap();
 $('platePick').onclick=()=>{
-  if(!clip||busy)return;pause();platePicking=!platePicking;plateDraft=[];mode='inspect';drag=null;$('platePick').textContent=platePicking?'Cancel corner selection':'Pick four corners on Original';
+  if(!clip||busy)return;pause();stringPicking=false;stringDraft=[];platePicking=!platePicking;plateDraft=[];mode='inspect';drag=null;$('platePick').textContent=platePicking?'Cancel corner selection':'Pick four corners on Original';
   $('plateGeometryStatus').textContent=platePicking?'Click top-left, top-right, bottom-right, bottom-left on Original. The first edge defines plate length. Escape cancels.':'Corner selection canceled.';
   if(platePicking){$('original').scrollIntoView({behavior:'smooth',block:'center'});$('original').focus();}drawVideos();
 };

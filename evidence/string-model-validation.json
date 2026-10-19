@@ -1,0 +1,113 @@
+{
+  "analysis_fps": 600.0,
+  "encoded_fps": 29.97002997002997,
+  "camera_nyquist_hz": 300.0,
+  "anchor_hz": 80.0,
+  "demo_preset": true,
+  "exports": [
+    {
+      "path": "/Users/stephenwells/Documents/DevOps/modal-camera/local_videos/exports/guitar-predicted-M3.mp4",
+      "frames": 76,
+      "fps": 30.0,
+      "bytes": 168314,
+      "max_decode_rgb_mae": 2.3106522817460315,
+      "duration_s": 0.020833333333333332,
+      "slowdown": 120.0,
+      "active_mode_hz": [
+        240.0
+      ]
+    },
+    {
+      "path": "/Users/stephenwells/Documents/DevOps/modal-camera/local_videos/exports/guitar-combined-string-tap.mp4",
+      "frames": 226,
+      "fps": 30.0,
+      "bytes": 240479,
+      "max_decode_rgb_mae": 2.403784013605442,
+      "duration_s": 0.0625,
+      "slowdown": 120.0,
+      "active_mode_hz": [
+        80.0,
+        160.0,
+        240.0
+      ]
+    }
+  ],
+  "frequencies_hz": [
+    80.0,
+    160.0,
+    240.0,
+    320.0,
+    400.0,
+    480.0,
+    560.0,
+    640.0
+  ],
+  "string_assumptions": {
+    "span_start": 0.0,
+    "span_end": 0.5,
+    "half_width_px": 3.0,
+    "inharmonicity": 0.0,
+    "anchor_harmonic": 1,
+    "endpoints": [
+      [
+        58.0,
+        25.0
+      ],
+      [
+        423.0,
+        83.0
+      ]
+    ],
+    "amplitude_source_px": null
+  },
+  "accepted_original_patches": 9,
+  "shape_correlation": 0.9341986565704425,
+  "antinode_source_px": 0.018792348020604914,
+  "amplitude_basis": "complex least-squares fit to original tracked patches",
+  "texture_warp_changed_pixels": 2962,
+  "tests": "164 passed in 74.00s (0:01:13)",
+  "browser_qa": {
+    "scope": "Verified during feature implementation; not repeated during Git delivery.",
+    "url": "http://127.0.0.1:8766/",
+    "600fps_analysis_29p97fps_playback": true,
+    "preserved_two_video_tiles": true,
+    "individual_M3_animation": true,
+    "combined_80_160_240_tap_play_pause": true,
+    "Advanced_B_0_to_0p001_and_back": true,
+    "parameter_change_updated_modes_to_160p2_241p0": true,
+    "refresh_recovers_model_and_cursor": true,
+    "current_string": {
+      "amplitude_source_px": null,
+      "anchor_harmonic": 1,
+      "endpoints": [
+        [
+          58.0,
+          25.0
+        ],
+        [
+          423.0,
+          83.0
+        ]
+      ],
+      "half_width_px": 3.0,
+      "inharmonicity": 0.0,
+      "span_end": 0.5,
+      "span_start": 0.0
+    },
+    "current_enabled_modes": [
+      0,
+      1,
+      2
+    ],
+    "Windows_and_mobile_execution": "not tested",
+    "screenshots": [
+      "ui-string-modes.png",
+      "ui-string-video.png"
+    ]
+  },
+  "checks": {
+    "javascript_syntax": "All seven scripts passed node --check",
+    "whitespace": "git diff --check passed",
+    "real_demo_export_decode": "76 and 226 frames at 30 fps; every decoded frame compared with shared renderer"
+  }
+}

@@ -59,8 +59,8 @@ function updateResponseHelp(){
     $('responseScale').textContent=`0–${reference.toFixed(3)} luminance levels RMS; show above ${(reference*sensitivityThreshold()).toFixed(3)}. Colors saturate at the 99th percentile.`;
     $('responseHelp').textContent=view==='amplified'?'Magnified images are visualization only. Measurements use original frames.':`${renderInfo?renderInfo.low.toFixed(2)+'–'+renderInfo.high.toFixed(2)+' Hz · ':''}Stable mask from original band-response RMS, independent of gain. Brightness variation is texture-dependent and can include lighting flicker; dark does not prove stationary.`;
   }
-  if(view==='tap'){$('renderLabel').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} Hz anchor · ASSUMED MODEL`:'ANALYZE RESPONSE';$('responseHelp').textContent='Observed standing shape or predicted thin-plate modes. Damping, geometry and mounting are assumptions; higher modes and simulated taps are not additional measurements.';}
-  if(view==='tap'&&tapData?.model.kind==='plate'){
+  if(view==='tap'){$('renderLabel').textContent=spatialField?`${spatialField.frequency_hz.toFixed(3)} Hz anchor · ASSUMED MODEL`:'ANALYZE RESPONSE';$('responseHelp').textContent='Observed standing shape or predicted plate/string modes. Damping, geometry and mounting are assumptions; higher modes and simulated taps are not additional measurements.';}
+  if(view==='tap'&&['plate','string'].includes(tapData?.model.kind)){
     const c=tapData.settings;
     $('visualizationTitle').textContent=c.motion==='mode'?`Predicted M${c.solo_mode+1} · ${c.clock_hz.toFixed(1)} Hz`:`Combined virtual tap · ${c.active_modes.length} modes`;
     $('renderLabel').textContent=`${tapData.model.frequency_hz.toFixed(3)} Hz anchor · PREDICTED`;

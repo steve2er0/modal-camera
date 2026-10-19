@@ -22,16 +22,17 @@ function updateTapLabels(){
   $('tapDampingValue').textContent=Number($('tapDamping').value).toFixed(1)+'%';$('tapStrengthValue').textContent=Number($('tapStrength').value).toFixed(1)+'×';
   const f=tapData?.clock_hz||tapData?.model.frequency_hz||spatialField?.frequency_hz||Number($('frequency').value);
   $('tapTimeLabel').textContent=(Number($('tapTime').value)/f).toFixed(4)+' simulation s';
-  $('tapTiming').textContent=Number.isFinite(f)?`${f.toFixed(3)} Hz ${tapData?.model.kind==='plate'?'predicted':'assumed'} · ${(tapData?.playback_slowdown||f/Number($('tapDisplayCps').value)).toFixed(1)}× slower playback`:'';
+  $('tapTiming').textContent=Number.isFinite(f)?`${f.toFixed(3)} Hz ${['plate','string'].includes(tapData?.model.kind)?'predicted':'assumed'} · ${(tapData?.playback_slowdown||f/Number($('tapDisplayCps').value)).toFixed(1)}× slower playback`:'';
 }
 function populateTapSelectors(){
   for(const [id,key] of [['tapNode','tap_node'],['tapProbeA','probe_a'],['tapProbeB','probe_b']]){
-    $(id).replaceChildren(...tapData.model.nodes.filter(n=>n.shape!==null).map(n=>new Option(`Grid ${n.index+1} (${n.x}, ${n.y})`,String(n.index))));$(id).value=tapSelection[key];
+    $(id).replaceChildren(...tapData.model.nodes.filter(n=>n.shape!==null).map(n=>new Option(`${tapData.model.sample_label||'Grid'} ${n.index+1} (${n.x.toFixed(0)}, ${n.y.toFixed(0)})`,String(n.index))));$(id).value=tapSelection[key];
   }
 }
 async function prepareTap(){
   if(!spatialField||$('responseView').value!=='tap')return;
   if($('tapModelSource').value==='plate'&&!plateConfig.corners){$('tapSummary').textContent='Set four plate corners under Advanced, then apply geometry to generate predicted modes.';return;}
+  if($('tapModelSource').value==='string'&&!stringConfig.endpoints){$('tapSummary').textContent='Mark one visible string segment under Advanced, then apply its assumptions.';return;}
   const serial=++tapRequest,e=epoch,key=spatialField.key;
   await flushSettings();
   const data=await api('/api/tap',{id:clip.id,revision,key,tap:readTapSettings()});
@@ -40,7 +41,10 @@ async function prepareTap(){
   installPlateModel(data);
   $('tapTime').max=data.settings.cycles;$('tapTime').value=data.settings.cursor_cycle;populateTapSelectors();updateTapLabels();
   const m=data.model,c=data.settings;
-  if(m.kind==='plate'){
+  if(m.kind==='string'){
+    $('tapSummary').textContent=c.motion==='mode'?`Animating string M${c.solo_mode+1} at ${c.clock_hz.toFixed(2)} Hz. The video ribbon follows this predicted standing wave.`:`Combined string tap at point ${c.tap_node+1} · ${c.active_modes.map(i=>m.modes[i].frequency_hz.toFixed(1)+' Hz').join(' + ')}. Local nodes suppress participation in the corresponding harmonic.`;
+    $('tapModelSummary').textContent=`Fixed-end uniform string · assumed anchor harmonic ${m.anchor_mode+1} · visible fractions ${m.string.span_start}–${m.string.span_end} · B=${m.string.inharmonicity}. Antinode scale ${m.reference_amplitude_source_px.toPrecision(3)} source px (${m.amplitude_basis}). ${m.fit_samples} accepted original patches; complex shape correlation ${m.fit_mac===null?'unavailable':m.fit_mac.toFixed(3)} is descriptive, not confidence. Modal mass = 0.5 with chosen total mass 1. The guitar body and neighboring strings are omitted.`;
+  }else if(m.kind==='plate'){
     $('tapSummary').textContent=c.motion==='mode'?`Animating predicted M${c.solo_mode+1} at ${c.clock_hz.toFixed(2)} Hz. Continuous motion; tap location and damping do not apply.`:`Combined tap at Grid ${c.tap_node+1} · ${c.active_modes.map(i=>'M'+(i+1)+' '+m.modes[i].frequency_hz.toFixed(1)+' Hz').join(' + ')}. Each mode responds according to its shape at the tap. Slowest envelope reaches 10% in ${data.seconds_to_ten_percent.toFixed(3)} simulation s.`;
     $('tapModelSummary').textContent=`Thin-plate Ritz model · ${m.plate.mounting} mounting · assumed length/width ${m.plate.aspect_ratio}. M${m.anchor_mode+1} fits the visible standing projection with MAC ${m.fit_mac.toFixed(3)} at ${m.fit_samples} patches. ${(100*m.standing_phase_fraction).toFixed(1)}% standing-projection energy; ${(100*m.interpolated_support_fraction).toFixed(1)}% image coverage is model-predicted, including unmeasured areas. Ritz order ${m.basis_order}; frequency ratios changed up to ${m.max_basis_change_percent.toFixed(2)}% with refinement. Matrices retain peak-normalized modal masses.`;
   }else{
@@ -48,7 +52,7 @@ async function prepareTap(){
     $('tapModelSummary').textContent=`Standing projection retains ${(100*m.standing_phase_fraction).toFixed(1)}% of selected-axis complex-response energy; descriptive, not mode confidence. ${(100*m.interpolated_support_fraction).toFixed(1)}% image warp support. Normalized M = 1, C = ${data.normalized_matrices.C[0][0].toPrecision(5)}, K = ${data.normalized_matrices.K[0][0].toPrecision(6)}. ${m.standing_phase_fraction<.8?'Substantial quadrature motion is omitted by this one-standing-mode approximation.':''}`;
   }
   notes('tapAssumptions',m.assumptions);await refreshTapFrame();drawTapTrace();saveDisplay();updateUI();
-  status(m.kind==='plate'?`Predicted ${c.motion==='mode'?'mode animation':'combined tap'} ready. Geometry and mounting assumptions are under Advanced.`:`Virtual tap ready at ${m.frequency_hz.toFixed(3)} Hz. Damping and impulse strength are assumed.`);
+  status(['plate','string'].includes(m.kind)?`Predicted ${c.motion==='mode'?'mode animation':'combined tap'} ready. Geometry and mounting assumptions are under Advanced.`:`Virtual tap ready at ${m.frequency_hz.toFixed(3)} Hz. Damping and impulse strength are assumed.`);
   if(tapAutoPlay){tapAutoPlay=false;await $('tapPlay').onclick();}
 }
 async function refreshTapFrame(){
@@ -77,12 +81,12 @@ $('tapPlay').onclick=async()=>{
   if(!tapData)return;
   pause();const data=tapData;if(Number($('tapTime').value)>=data.settings.cycles)$('tapTime').value=0;
   tapPlaying=true;const serial=++tapPlaySerial,initial=Number($('tapTime').value),start=performance.now();let last=0,fetching=false;
-  $('tapPlay').textContent='Ⅱ Pause';status(data.model.kind==='plate'&&data.settings.motion==='mode'?'Predicted mode animation running. The video texture and point traces share the same motion.':'Virtual tap running. Point traces show simulated source-pixel motion.');
+  $('tapPlay').textContent='Ⅱ Pause';status(['plate','string'].includes(data.model.kind)&&data.settings.motion==='mode'?'Predicted mode animation running. The video texture and point traces share the same motion.':'Virtual tap running. Point traces show simulated source-pixel motion.');
   async function tick(now){
     if(!tapPlaying||serial!==tapPlaySerial)return;
     if(!fetching&&now-last>70){last=now;fetching=true;$('tapTime').value=Math.min(data.settings.cycles,initial+(now-start)/1000*(data.settings.effective_display_cps||data.settings.display_cps));
       try{await refreshTapFrame();}catch(e){pauseTap();showError(e);}finally{fetching=false;}
-      if(Number($('tapTime').value)>=data.settings.cycles){pauseTap();$('tapPlay').textContent='↻ Replay';saveDisplay();status(data.model.kind==='plate'&&data.settings.motion==='mode'?'Mode animation finished. Replay or animate another predicted mode.':'Virtual tap finished. Replay or adjust the assumed damping and strength.');return;}}
+      if(Number($('tapTime').value)>=data.settings.cycles){pauseTap();$('tapPlay').textContent='↻ Replay';saveDisplay();status(['plate','string'].includes(data.model.kind)&&data.settings.motion==='mode'?'Mode animation finished. Replay or animate another predicted mode.':'Virtual tap finished. Replay or adjust the assumed damping and strength.');return;}}
     if(tapPlaying&&serial===tapPlaySerial)requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
@@ -108,9 +112,9 @@ const originalResponseClick=$('amplified').onclick;
 $('amplified').onclick=e=>{
   if($('responseView').value!=='tap'){originalResponseClick(e);return;}
   if(!tapData||busy)return;
-  if(plateMotion==='mode'&&tapData.model.kind==='plate'){status('Choose Combined tap to change the excitation location.');return;}
+  if(plateMotion==='mode'&&['plate','string'].includes(tapData.model.kind)){status('Choose Combined tap to change the excitation location.');return;}
   const c=$('amplified'),r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*c.width,y=(e.clientY-r.top)/r.height*c.height;
-  let nearest=null,distance=spatialField.grid.step*.75;
+  let nearest=null,distance=tapData.model.pick_radius_px||spatialField.grid.step*.75;
   for(const n of tapData.model.nodes){const d=Math.hypot(n.x-x,n.y-y);if(n.shape!==null&&d<distance){nearest=n;distance=d;}}
   if(!nearest){$('tapSummary').textContent='Choose a visible usable dot. Unsupported locations are not extrapolated.';return;}
   tapSelection.tap_node=nearest.index;tapSelection.probe_a=nearest.index;if(tapSelection.probe_b===nearest.index)tapSelection.probe_b=null;scheduleTap();

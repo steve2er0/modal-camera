@@ -111,7 +111,7 @@ def export_metadata(video, view, sensitivity, modal_gain, phase_start, render_in
         # Keep the MP4 comment compact; dense shapes and thumbnails are not
         # required to reproduce the model from its complete assumptions.
         export_model = model
-        if model.get('kind') == 'plate':
+        if model.get('kind') in ('plate','string'):
             export_model = {k:v for k,v in model.items() if k != 'nodes'}
             export_model['modes'] = [{k:v for k,v in mode.items() if k != 'thumbnail'} for mode in model['modes']]
         result.update(frequency_hz=model['frequency_hz'], axis=model['axis'], modal_gain=modal_gain,
@@ -145,7 +145,7 @@ def annotate_tap(rgb, metadata, time_s):
     output = np.full((height,640,3),(8,17,24),np.uint8)
     output[64:64+ih,(640-iw)//2:(640-iw)//2+iw] = cv2.resize(rgb,(iw,ih))
     config, model = metadata['tap_settings'], metadata['tap_model']
-    predicted = model.get('kind') == 'plate'
+    predicted = model.get('kind') in ('plate','string')
     title = 'PREDICTED MODE' if predicted and config['motion'] == 'mode' else 'PREDICTED COMBINED TAP' if predicted else 'VIRTUAL TAP'
     frequency = config.get('clock_hz', model['frequency_hz'])
     text_line(output, f"{title} | {frequency:.3f} Hz | ASSUMED MODEL", 26,(54,207,238),.6)
@@ -169,7 +169,8 @@ def annotate_tap(rgb, metadata, time_s):
     cv2.line(output,(cursor,top),(cursor,bottom),(235,242,247),1)
     text_line(output,f"+/- {peak:.3g} simulated source px (gain excluded)",base+45,scale=.4)
     a,b = prediction['traces']
-    text_line(output,f"A: Grid {a['node']+1} (cyan) | B: Grid {b['node']+1} (amber) | 0-{prediction['duration_s']:.4f} simulation s",base+166)
+    label = model.get('sample_label','Grid')
+    text_line(output,f"A: {label} {a['node']+1} (cyan) | B: {label} {b['node']+1} (amber) | 0-{prediction['duration_s']:.4f} simulation s",base+166)
     text_line(output,'Normalized mass; assumed damping and natural frequency; no force calibration.',base+190)
     if predicted:
         frequencies = ', '.join(f"{model['modes'][i]['frequency_hz']:.1f}" for i in config['active_modes'])

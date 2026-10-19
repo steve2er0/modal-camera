@@ -46,7 +46,7 @@ function drawVideos(){
       if(analysis){const trace=analysis.points[j];if(trace){const dx=(trace.raw_dx||trace.dx)[frame],dy=(trace.raw_dy||trace.dy)[frame];ok=dx!==null&&dy!==null;if(ok){x+=dx/clip.metadata.scale_x;y+=dy/clip.metadata.scale_y;}}}
       ctx.strokeStyle=ok?colors[j]:'#ff9b9b';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#101820';ctx.fillRect(x+7,y-14,21,13);ctx.fillStyle=ctx.strokeStyle;ctx.font='10px sans-serif';ctx.fillText(`P${j+1}`,x+9,y-4);
     });
-    if(id==='original'){drawSampling(ctx,c);drawPlateOutline(ctx);}
+    if(id==='original'){drawSampling(ctx,c);drawPlateOutline(ctx);drawStringOutline(ctx);}
     if(id==='original'&&mode==='points'&&document.activeElement===c){ctx.strokeStyle='#fff';ctx.beginPath();ctx.moveTo(cursor[0]-6,cursor[1]);ctx.lineTo(cursor[0]+6,cursor[1]);ctx.moveTo(cursor[0],cursor[1]-6);ctx.lineTo(cursor[0],cursor[1]+6);ctx.stroke();}
   }
 }
@@ -67,6 +67,7 @@ $('clearPoints').onclick=()=>{points=[];settingsChanged();};$('clearRoi').onclic
 function imagePosition(e){const r=$('original').getBoundingClientRect();return[(e.clientX-r.left)/r.width*$('original').width,(e.clientY-r.top)/r.height*$('original').height];}
 $('original').onpointerdown=e=>{
   if(!clip||busy)return;const p=imagePosition(e);
+  if(stringPicking){pickStringEndpoint(p);return;}
   if(platePicking){pickPlateCorner(p);return;}
   if(mode==='inspect'){if(timingConfirmed&&$('psdShowSamples').checked){const sample=nearestPsdSample(p);if(sample)selectPsdPoint([sample.x,sample.y]);}return;}
   pause();if(mode==='psd-point'){selectPsdPoint(p);return;}
@@ -84,6 +85,7 @@ $('original').onpointerup=e=>{
 $('original').onpointercancel=()=>{if(drag?.kind==='psd-region'){drag=null;psdDraftRegion=null;drawVideos();}};
 $('original').onkeydown=e=>{
   if(!clip||busy)return;
+  if(e.key==='Escape'&&stringPicking){stringPicking=false;stringDraft=[];$('stringPick').textContent='Pick visible string segment on Original';drawVideos();return;}
   if(e.key==='Escape'&&platePicking){platePicking=false;plateDraft=[];$('platePick').textContent='Pick four corners on Original';drawVideos();return;}
   if(e.key==='Escape'&&mode.startsWith('psd-')){e.preventDefault();drag=null;psdDraftRegion=null;setMode('inspect');return;}
   if(!['points','psd-point'].includes(mode))return;

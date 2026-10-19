@@ -1,8 +1,8 @@
-"""An assumed, one-mode image-plane sandbox, never modal identification.
+"""Observed standing shapes and predicted modal image-plane sandboxes.
 
 Project the observed complex operating response onto a common real axis. The
-result is a standing-mode approximation. Its oscillator has chosen unit modal
-mass and relative impulse scaling; no force calibration or kg are implied.
+result is a standing-mode approximation. Predicted plate and string bases use
+consistent modal masses and a shared impulse; no force calibration or kg implied.
 """
 import math
 
@@ -11,6 +11,7 @@ import numpy as np
 
 from .response import interpolate_field
 from .plate_modes import validate_plate_settings
+from .string_modes import validate_string_settings, string_frame
 
 
 def validate_tap_settings(data):
@@ -28,11 +29,13 @@ def validate_tap_settings(data):
         if not math.isfinite(value) or not low <= value <= high:
             raise ValueError(f'Virtual tap {key} must be between {low} and {high}.')
         result[key] = value
-    if 'model_source' in data or 'plate' in data:
+    if 'model_source' in data or 'plate' in data or 'string' in data:
         result['model_source'] = data.get('model_source', 'observed')
-        if result['model_source'] not in ('observed', 'plate'):
-            raise ValueError('Choose the observed response or predicted plate model.')
+        if result['model_source'] not in ('observed', 'plate', 'string'):
+            raise ValueError('Choose an observed response, predicted plate, or tensioned string.')
         result['plate'] = validate_plate_settings(data.get('plate', {}))
+        if 'string' in data or result['model_source'] == 'string':
+            result['string'] = validate_string_settings(data.get('string', {}))
         result['motion'] = data.get('motion', 'tap')
         if result['motion'] not in ('tap', 'mode'):
             raise ValueError('Choose a combined tap or a single mode animation.')
@@ -124,9 +127,13 @@ def configure(model, data):
         other = [n for n in valid.values() if n['index'] != settings['probe_a']]
         opposite = [n for n in other if n['shape'][component]*a < 0]
         settings['probe_b'] = max(opposite or other, key=lambda n: abs(n['shape'][component]))['index']
+        if model.get('kind') == 'string' and not opposite:
+            target = model['string']['span_start']+.25*(model['string']['span_end']-model['string']['span_start'])
+            settings['probe_b'] = min(other,key=lambda n:abs(n['u']-target))['index']
     settings['participation'] = valid[settings['tap_node']]['shape'][component]
-    if model.get('kind') == 'plate':
-        settings.update(model_source='plate', plate=model['plate'])
+    if model.get('kind') in ('plate','string'):
+        kind = model['kind']
+        settings.update(model_source=kind, **{kind:model[kind]})
         settings.setdefault('motion', 'tap')
         settings['enabled_modes'] = settings.get('enabled_modes') or list(range(model['anchor_mode'], min(8, model['anchor_mode']+4)))
         settings['solo_mode'] = model['anchor_mode'] if settings.get('solo_mode') is None else settings['solo_mode']
@@ -152,7 +159,7 @@ def oscillator(model, settings, time_s):
 
 def simulate(model, data):
     settings = configure(model, data)
-    if model.get('kind') == 'plate':
+    if model.get('kind') in ('plate','string'):
         return simulate_plate(model, settings)
     f = model['frequency_hz']
     t = np.linspace(0, settings['cycles']/f, math.ceil(settings['cycles']*24)+1)
@@ -178,6 +185,8 @@ def tap_frame(video, model, maps, settings, time_s, gain=10.):
         raise ValueError('Virtual tap time is outside the simulation.')
     if not math.isfinite(gain) or not 0 <= gain <= 20:
         raise ValueError('Virtual tap display gain must be between 0 and 20.')
+    if model.get('kind') == 'string':
+        return string_frame(video,model,maps,plate_coordinates(model,settings,time_s),gain)
     if model.get('kind') == 'plate':
         q = plate_coordinates(model, settings, time_s)
         displacement = np.sum(maps['modes']*q[None, None, :], axis=2)
@@ -195,6 +204,14 @@ def tap_frame(video, model, maps, settings, time_s, gain=10.):
 
 def tap_display_frame(video, model, maps, settings, time_s, gain=10.):
     rgb = tap_frame(video,model,maps,settings,time_s,gain)
+    if model.get('kind') == 'string':
+        q = plate_coordinates(model,settings,time_s)
+        points = []
+        for node in model['nodes']:
+            displacement = float(np.dot(node['modes'],q))*gain
+            points.append((round(node['x']+displacement*maps['projection'][0]/video.metadata['scale_x']),
+                           round(node['y']+displacement*maps['projection'][1]/video.metadata['scale_y'])))
+        cv2.polylines(rgb,[np.array(points,np.int32)],False,(54,207,238),1,cv2.LINE_AA)
     if model.get('kind') == 'plate':
         # A light signed overlay makes nodes/lobes readable while the actual
         # grid texture moves under it. Zero displacement leaves the texture alone.
@@ -209,7 +226,7 @@ def tap_display_frame(video, model, maps, settings, time_s, gain=10.):
             cv2.circle(rgb,(round(node['x']),round(node['y'])),1,(100,133,148),-1)
     nodes = {n['index']:n for n in model['nodes']}
     for label,key,color in [('T','tap_node',(255,201,134)),('A','probe_a',(54,207,238)),('B','probe_b',(255,201,134))]:
-        if label == 'T' and model.get('kind') == 'plate' and settings['motion'] == 'mode':
+        if label == 'T' and model.get('kind') in ('plate','string') and settings['motion'] == 'mode':
             continue
         node = nodes[settings[key]]
         p = (round(node['x']),round(node['y']))
@@ -219,9 +236,9 @@ def tap_display_frame(video, model, maps, settings, time_s, gain=10.):
 
 
 def plate_coordinates(model, settings, time_s):
-    """One common relative point impulse; consistent peak-normalized masses."""
+    """Shared modal impulse for plate and string; peak-normalized masses."""
     t = np.asarray(time_s)
-    result = np.zeros((8,)+t.shape)
+    result = np.zeros((len(model['modes']),)+t.shape)
     reference = model['reference_amplitude_source_px']
     nodes = {n['index']: n for n in model['nodes']}
     anchor = model['modes'][model['anchor_mode']]
