@@ -43,6 +43,27 @@ Open **http://127.0.0.1:8765** in Edge or Chrome. No PowerShell activation or ex
 4. **Explore.** Aligned previews offer Heatmap, Isolated, Amplitude, Phase, Animation, and Magnified views. **Show weaker responses** changes the display threshold. Animation has a separate display gain and a one-second fitted cycle. Select a measured patch from the accessible sample selector, hover/click it, or focus the response image and use arrow keys to inspect amplitude, relative phase, accepted frames and residuals.
 5. **Export.** Choose an available MP4 or data format and click **Export**. A permanent **Save** link is provided for the prepared file. Errors stay in the workspace. Point traces CSV becomes available only when manual points have been analyzed.
 
+### Restore the plate experiment settings
+
+After opening your plate recording, click **Apply plate demo settings** beside
+the filename (also available under Advanced). This keeps the loaded video and
+encoded playback unchanged. It restores the original experiment's assumed
+**240 fps** analysis timing, **94.872 Hz** target (the approximately 95 Hz peak),
+**91.883–97.092 Hz** band, Y displacement, 10 Hz PSD high-pass and saved PSD
+point, then rebuilds the response field, predicted plate modes and combined tap.
+The preset also restores the saved plate outline, aspect ratio 2, free mounting,
+Poisson ratio 0.33, unit taper, zero sweep and 90° camera-plane projection;
+the first four modes are enabled with 1% assumed damping, relative strength 1,
+40 cycles and display gain 8. Calibration, manual points and camera subtraction
+reset. Detailed model controls remain under Advanced.
+
+No recording is loaded or downloaded by this button. Saved outline and PSD
+coordinates scale with the analysis image size; they describe the original plate
+experiment and are not automatic object detection. Inspect them when using a
+different recording. The 240 fps setting is an explicit assumption, not a timing
+measurement. A short or undersized clip that cannot support these settings is
+rejected without changing the active session.
+
 ### Choose the PSD sampling location
 
 Sampling centers are overlaid on **Original** by default. Dots mark fixed **frame-0 reference positions**, rather than moving per-frame tracking markers. Green means a complete track usable for the current PSD; a cross marks an incomplete selected track, and gray marks another available location. **Show samples** hides or shows this overlay. The source caption above the PSD names the active selection, and Analysis JSON includes each sample's coordinates, selection and quality eligibility.

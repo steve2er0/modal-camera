@@ -1,0 +1,141 @@
+{
+  "feature": "Settings-only plate experiment preset",
+  "tests": {
+    "full_suite": "200 passed in 81.58 s",
+    "new_preset_tests": 9,
+    "javascript_syntax": "all seven scripts pass",
+    "diff_check": "passed"
+  },
+  "unit_checks": [
+    "No video decode on preset application; original frame-array identity retained",
+    "Same clip identity, source dimensions and encoded playback rate",
+    "All computed outputs invalidated, including a timing-only change",
+    "Stale IDs/revisions and unsupported clips reject without session mutation",
+    "Saved coordinates scale with decoded image dimensions"
+  ],
+  "browser_checks": {
+    "url": "http://127.0.0.1:8766",
+    "top_button": "passed",
+    "advanced_button": "passed",
+    "refresh_recovery": "passed",
+    "console_errors": [],
+    "same_loaded_clip_id": true,
+    "frame_count": 468,
+    "encoded_fps": 30.0,
+    "assumed_analysis_fps": 240.0
+  },
+  "restored_settings": {
+    "axis": "y",
+    "bandwidth": 4.0,
+    "calibration": null,
+    "frequency": 94.872,
+    "gain": 4.0,
+    "high": 97.092,
+    "linked": false,
+    "low": 91.883,
+    "points": [],
+    "reference": "auto",
+    "reference_last": false,
+    "roi": null,
+    "spectrum_highpass_hz": 10.0,
+    "spectrum_point": [
+      112.0,
+      64.0
+    ],
+    "spectrum_region": [
+      35.0,
+      50.0,
+      235.0,
+      55.0
+    ],
+    "spectrum_source": "point"
+  },
+  "restored_ui": {
+    "frame": 0,
+    "modal_gain": 8.0,
+    "phase": 28.0,
+    "sensitivity": 76.0,
+    "tap": {
+      "cursor_cycle": 0.0,
+      "cycles": 40.0,
+      "damping_percent": 1.0,
+      "direction": 1.0,
+      "display_cps": 2.0,
+      "enabled_modes": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "model_source": "plate",
+      "motion": "tap",
+      "plate": {
+        "anchor_mode": null,
+        "aspect_ratio": 2.0,
+        "corners": [
+          [
+            45.0,
+            55.0
+          ],
+          [
+            236.0,
+            52.0
+          ],
+          [
+            269.0,
+            96.0
+          ],
+          [
+            20.0,
+            99.0
+          ]
+        ],
+        "mount_radius": 0.08,
+        "mount_stiffness": 10000.0,
+        "mount_u": 0.5,
+        "mount_v": 0.5,
+        "mounting": "free",
+        "poisson": 0.33,
+        "projection_angle_deg": 90.0,
+        "sweep_offset": 0.0,
+        "taper_ratio": 1.0
+      },
+      "probe_a": 25,
+      "probe_b": 41,
+      "solo_mode": 0,
+      "strength": 1.0,
+      "string": {
+        "strings": [
+          {
+            "amplitude_source_px": null,
+            "anchor_harmonic": 1,
+            "anchor_hz": null,
+            "enabled": true,
+            "endpoints": null,
+            "half_width_px": 3.0,
+            "inharmonicity": 0.0,
+            "name": "String 1",
+            "span_end": 1.0,
+            "span_start": 0.0
+          }
+        ]
+      },
+      "tap_node": 25
+    },
+    "timing_confirmed": true,
+    "timing_mode": "capture",
+    "view": "tap"
+  },
+  "regenerated_modes_hz": [
+    94.872,
+    116.14141012764094,
+    256.3572063672207,
+    263.81130216192224,
+    391.130828902555,
+    446.47251315484755,
+    460.9871282978227,
+    527.2558341728077
+  ],
+  "screenshot": "ui-plate-settings-preset.png",
+  "limits": "Preset geometry and 240 fps timing are explicit assumptions for the original plate recording, not object detection or timing measurement."
+}

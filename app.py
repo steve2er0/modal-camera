@@ -25,6 +25,7 @@ from modal_camera.session import defaults, validate_settings, validate_ui, signa
 from modal_camera.virtual_tap import build_model, simulate, configure, tap_display_frame
 from modal_camera.plate_modes import build_plate_model, validate_plate_settings
 from modal_camera.string_modes import build_string_model, validate_string_settings
+from modal_camera.presets import plate_demo_settings
 
 ROOT = Path(__file__).resolve().parent
 app = Flask(__name__)
@@ -222,6 +223,26 @@ def demo():
             write_demos(demos)
         name = 'known_motion' if kind=='clean' else 'tracking_dropout'
         return install_clip(decode_video(demos/(name+'.avi')),True)
+
+
+@app.post('/api/preset')
+def preset():
+    data = json_object()
+    if data.get('kind') != 'plate':
+        raise ValueError('Choose the plate demo settings preset.')
+    with lock:
+        if 'video' not in state:
+            raise ValueError('Open your plate recording before applying the plate demo settings.')
+        video = current(data.get('id'))
+        check_revision(data)
+        # Validate the entire preset before changing the live session. The
+        # original frames, clip identity and encoded playback stay untouched.
+        assumed,settings,ui = plate_demo_settings(video)
+        state['video'] = assumed
+        state['spectrum'] = state['spectrum_key'] = None
+        change_settings(settings,force=True)
+        state['ui'] = ui
+        return jsonify(session_payload())
 
 
 def spectrum_trace_pool():

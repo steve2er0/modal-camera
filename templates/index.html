@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Modal Camera · Frequency response explorer</title>
-  <link rel="stylesheet" href="/static/style.css?v=15">
-  <script defer src="/static/app.js?v=15"></script><script defer src="/static/response.js?v=10"></script><script defer src="/static/sampling.js?v=3"></script><script defer src="/static/plate.js?v=4"></script><script defer src="/static/string.js?v=2"></script><script defer src="/static/tap.js?v=5"></script><script defer src="/static/workflow.js?v=9"></script>
+  <link rel="stylesheet" href="/static/style.css?v=16">
+  <script defer src="/static/app.js?v=15"></script><script defer src="/static/response.js?v=10"></script><script defer src="/static/sampling.js?v=3"></script><script defer src="/static/plate.js?v=4"></script><script defer src="/static/string.js?v=2"></script><script defer src="/static/tap.js?v=5"></script><script defer src="/static/workflow.js?v=10"></script>
 </head>
 <body>
 <header>
@@ -19,7 +19,7 @@
     <p class="hint">MP4 · MOV · AVI · MKV · WebM · M4V. Up to {{ upload_limit_mib }} MiB and 600 frames. Nothing leaves this computer.</p>
   </section>
   <section id="workspace" hidden>
-    <div class="clipbar"><strong id="clipName"></strong><span id="clipMeta"></span></div>
+    <div class="clipbar"><strong id="clipName"></strong><span id="clipMeta"></span><button id="platePreset" class="secondary" title="Settings only for the original plate recording: assumes 240 fps, restores the 94.872 Hz target and outline, and regenerates predictions on the current video.">Apply plate demo settings</button></div>
     <div class="setup-grid">
       <article class="panel timing-panel">
         <div class="panelhead"><h3><span class="step">1</span> Confirm timing</h3><button id="editTiming" class="secondary" hidden>Change</button></div>
@@ -90,7 +90,8 @@
     </div>
     <article class="panel share-panel"><div><h3><span class="step">4</span> Share</h3><p id="exportHelp" class="hint">Analyze the response to enable exports.</p></div><div class="export-controls"><label class="sr-only" for="exportKind">Export format</label><select id="exportKind"><option value="heatmap">Heatmap MP4</option><option value="isolated">Isolated MP4</option><option value="modal">Animation MP4</option><option value="tap">Virtual animation / tap MP4</option><option value="tap-traces">Simulated virtual traces CSV</option><option value="tap-model">Virtual model + assumptions JSON</option><option value="analysis">Analysis JSON</option><option value="samples">Spatial samples CSV</option><option value="traces">Measured point traces CSV</option></select><button id="exportResponse" disabled>Export</button></div><a id="videoDownload" hidden>Save export</a></article>
     <details id="advanced" class="panel advanced"><summary>Advanced <span>Points, calibration, model assumptions and diagnostics</span></summary>
-      <div class="demoactions"><button id="reloadDemo" class="secondary">Load 3 Hz demo</button><button id="reloadDropout" class="secondary">Load dropout demo</button><button id="reloadGuitar" class="secondary">Load MIT guitar demo · 600 fps</button></div>
+      <div class="demoactions"><button id="reloadPlatePreset" class="secondary">Apply plate demo settings</button><button id="reloadDemo" class="secondary">Load 3 Hz demo</button><button id="reloadDropout" class="secondary">Load dropout demo</button><button id="reloadGuitar" class="secondary">Load MIT guitar demo · 600 fps</button></div>
+      <p class="hint">Plate demo settings use your current video: assumed 240 fps, 94.872 Hz target, saved outline and free-plate model. No video is loaded. The outline scales with image size and is intended for the original plate recording.</p>
       <div class="advanced-grid">
         <section><h3>Measurement settings</h3><div class="settings">
           <label>Displacement axis<select id="axis"><option value="y">Y · image down</option><option value="x">X · image right</option></select></label>

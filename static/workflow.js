@@ -77,6 +77,7 @@ function updateExports(){
   $('exportHelp').textContent=['tap','tap-traces','tap-model'].includes($('exportKind').value)?'Virtual exports capture the current single-mode animation or combined tap, simulated traces, geometry, supports, predicted frequencies and timing. No force calibration.':renderInfo||spatialField?`Exports capture the applied frequency, timing, sensitivity and display gain. Animation contains four slowed cycles.`:displacementSpectrum?'PSD is available in Analysis JSON. Analyze the response to enable video exports.':'Analyze response to enable exports. No download will replace this workspace.';
 }
 function updateUI(){
+  for(const id of ['platePreset','reloadPlatePreset'])$(id).disabled=busy||!clip;
   showTimebase();syncRoiInputs();$('targetHelp').textContent=$('linkedBand').checked?'Band follows target ± half the bandwidth.':'Independent band; target sets the displacement fit.';$('low').readOnly=$('linkedBand').checked;$('high').readOnly=$('linkedBand').checked;$('bandwidth').disabled=busy||!$('linkedBand').checked;
   $('processResponse').disabled=busy||!clip||!timingConfirmed;$('setTimebase').disabled=busy||!clip||!$('timingMode').value||timingConfirmed;
   $('measureSpectrum').disabled=busy||!clip||!timingConfirmed;$('measureSpectrum').textContent=displacementSpectrum?'Refresh PSD':$('spectrumHighpass').checked?'Apply PSD':'Measure PSD';
@@ -166,6 +167,12 @@ for(const id of ['axis','cameraReference','fieldReference'])$(id).onchange=()=>s
 $('calibration').oninput=()=>{settingsChanged({compute:false});drawResults();showFieldSummary();updateResponseHelp();drawVideos();};
 $('applyRoi').onclick=()=>{try{const box=['roiX','roiY','roiWidth','roiHeight'].map(id=>finiteInput(id,'ROI'));if(box[0]<0||box[1]<0||box[2]<8||box[3]<8||box[0]+box[2]>clip.metadata.width||box[1]+box[3]>clip.metadata.height)throw new Error('ROI must lie inside the image and be at least 8 by 8 analysis pixels.');roi=box;settingsChanged();}catch(e){showError(e);}};
 for(const [id,kind] of [['cleanDemo','clean'],['dropoutDemo','dropout'],['reloadDemo','clean'],['reloadDropout','dropout'],['reloadGuitar','guitar']])$(id).onclick=()=>task('Loading the known-motion demo…',async()=>{await flushSettings().catch(()=>{});await installInBrowser(await api('/api/demo',{kind}));await analyzeWorkflow();});
+for(const id of ['platePreset','reloadPlatePreset'])$(id).onclick=()=>task('Restoring plate settings and regenerating predicted modes…',async()=>{
+  await flushSettings().catch(()=>{});
+  const data=await api('/api/preset',{kind:'plate',id:clip.id,revision});
+  await installInBrowser(data);await analyzeWorkflow();
+  if(tapData&&!stopRequested)status('Plate demo settings applied to your loaded video: 240 fps assumed, 94.872 Hz anchor. Predicted modes and combined tap are ready.');
+});
 $('videoFile').onchange=()=>{const file=$('videoFile').files[0];$('videoFile').value='';if(!file)return;task('Decoding the recording and checking frame timing…',async()=>{await flushSettings().catch(()=>{});const form=new FormData();form.append('video',file);await installInBrowser(await api('/api/load',form,true));});};
 $('exportKind').onchange=updateExports;
 $('exportResponse').onclick=()=>task('Preparing your export…',async()=>{
