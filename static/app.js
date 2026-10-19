@@ -5,11 +5,11 @@ let clip=null,points=[],roi=null,mode='inspect',analysis=null,analysisKey=null,r
 let originalImage=null,amplifiedImage=null,frameRequest=0,fetchingFrame=false,drag=null;
 let revision=null,timingConfirmed=false,dirty=false,stopRequested=false,cursor=[32,32];
 let displacementSpectrum=null,spectrumIdentity=null;
-function currentSpectrumIdentity(){return clip?JSON.stringify([clip.id,clip.metadata.fps,clip.metadata.timing_basis,timingConfirmed,$('axis').value,points,roi,$('cameraReference').checked,$('spectrumHighpass').checked?Number($('highpassCutoff').value):0]):null;}
+function currentSpectrumIdentity(){return clip?JSON.stringify([clip.id,clip.metadata.fps,clip.metadata.timing_basis,timingConfirmed,...psdSelectionIdentity()]):null;}
 async function runSpectrum(){
-  await flushSettings();
+  await flushSettings();if(psdSamplingIdentity!==currentSpectrumIdentity())await refreshSampling();
   const result=await api('/api/spectrum',{id:clip.id,revision});
-  displacementSpectrum=result;spectrumIdentity=currentSpectrumIdentity();revision=result.revision;drawSpectrum();
+  displacementSpectrum=result;spectrumIdentity=currentSpectrumIdentity();revision=result.revision;if(result.sampling)installSampling(result.sampling);drawSpectrum();
 }
 const status=message=>{$('status').textContent=message;$('operationState').textContent=clip?message:'';};
 function showError(e){$('error').hidden=false;$('error').textContent=e.message||String(e);status('Please correct the highlighted setting or try again.');if(e.field){const field=$(e.field);field.setAttribute('aria-invalid','true');if(field.closest('#advanced'))$('advanced').open=true;field.focus();}}
@@ -46,6 +46,7 @@ function drawVideos(){
       if(analysis){const trace=analysis.points[j];if(trace){const dx=(trace.raw_dx||trace.dx)[frame],dy=(trace.raw_dy||trace.dy)[frame];ok=dx!==null&&dy!==null;if(ok){x+=dx/clip.metadata.scale_x;y+=dy/clip.metadata.scale_y;}}}
       ctx.strokeStyle=ok?colors[j]:'#ff9b9b';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#101820';ctx.fillRect(x+7,y-14,21,13);ctx.fillStyle=ctx.strokeStyle;ctx.font='10px sans-serif';ctx.fillText(`P${j+1}`,x+9,y-4);
     });
+    if(id==='original')drawSampling(ctx,c);
     if(id==='original'&&mode==='points'&&document.activeElement===c){ctx.strokeStyle='#fff';ctx.beginPath();ctx.moveTo(cursor[0]-6,cursor[1]);ctx.lineTo(cursor[0]+6,cursor[1]);ctx.moveTo(cursor[0],cursor[1]-6);ctx.lineTo(cursor[0],cursor[1]+6);ctx.stroke();}
   }
 }
@@ -53,7 +54,7 @@ $('play').onclick=()=>{if(!clip||busy)return;if(playing){pause();saveDisplay();r
   async function tick(){if(!playing)return;const desired=(firstFrame+Math.floor((performance.now()-start)/1000*clip.metadata.encoded_fps*Number($('speed').value)))%clip.metadata.frames;if(desired!==frame&&!fetchingFrame){fetchingFrame=true;try{await showFrame(desired);}catch(e){pause();showError(e);}finally{fetchingFrame=false;}}if(playing)requestAnimationFrame(tick);}requestAnimationFrame(tick);
 };
 $('scrub').oninput=()=>{pause();showFrame(Number($('scrub').value)).then(saveDisplay).catch(showError);};$('speed').onchange=pause;
-function setMode(value){mode=mode===value?'inspect':value;$('pointMode').setAttribute('aria-pressed',String(mode==='points'));$('roiMode').setAttribute('aria-pressed',String(mode==='roi'));$('original').classList.toggle('editing',mode!=='inspect');drawVideos();}
+function setMode(value){mode=mode===value?'inspect':value;$('pointMode').setAttribute('aria-pressed',String(mode==='points'));$('roiMode').setAttribute('aria-pressed',String(mode==='roi'));$('original').classList.toggle('editing',mode!=='inspect');updateSamplingControls();drawVideos();}
 $('pointMode').onclick=()=>{setMode('points');if(mode==='points'){$('original').focus();status('Add points: click textured corners, or move with arrows and press Enter.');}};
 $('roiMode').onclick=()=>{setMode('roi');if(mode==='roi')$('original').focus();};
 function addPoint(x,y){
@@ -64,10 +65,30 @@ function addPoint(x,y){
 $('addPoint').onclick=()=>{try{addPoint(Number($('pointX').value),Number($('pointY').value));}catch(e){showError(e);}};
 $('clearPoints').onclick=()=>{points=[];settingsChanged();};$('clearRoi').onclick=()=>{roi=null;settingsChanged();};
 function imagePosition(e){const r=$('original').getBoundingClientRect();return[(e.clientX-r.left)/r.width*$('original').width,(e.clientY-r.top)/r.height*$('original').height];}
-$('original').onpointerdown=e=>{if(!clip||busy||mode==='inspect')return;pause();const p=imagePosition(e);if(mode==='points'){try{addPoint(...p);}catch(error){showError(error);}}else{drag={kind:'roi',start:p};$('original').setPointerCapture(e.pointerId);}};
-$('original').onpointermove=e=>{if(drag?.kind!=='roi')return;const p=imagePosition(e),s=drag.start,w=clip.metadata.width,h=clip.metadata.height;roi=[Math.max(0,Math.min(s[0],p[0])),Math.max(0,Math.min(s[1],p[1])),Math.min(w,Math.abs(s[0]-p[0])),Math.min(h,Math.abs(s[1]-p[1]))].map(Math.round);roi[2]=Math.min(roi[2],w-roi[0]);roi[3]=Math.min(roi[3],h-roi[1]);drawVideos();};
-$('original').onpointerup=()=>{if(drag?.kind==='roi'){drag=null;if(roi&&Math.min(roi[2],roi[3])<8)roi=null;settingsChanged();}};
-$('original').onkeydown=e=>{if(!clip||busy||mode!=='points')return;const delta=e.shiftKey?10:1;if(e.key.startsWith('Arrow')){e.preventDefault();cursor[0]=Math.max(16,Math.min(clip.metadata.width-17,cursor[0]+(e.key==='ArrowRight'?delta:e.key==='ArrowLeft'?-delta:0)));cursor[1]=Math.max(16,Math.min(clip.metadata.height-17,cursor[1]+(e.key==='ArrowDown'?delta:e.key==='ArrowUp'?-delta:0)));$('pointX').value=cursor[0];$('pointY').value=cursor[1];drawVideos();}else if(e.key==='Enter'){e.preventDefault();try{addPoint(...cursor);}catch(error){showError(error);}}};
+$('original').onpointerdown=e=>{
+  if(!clip||busy)return;const p=imagePosition(e);
+  if(mode==='inspect'){if(timingConfirmed&&$('psdShowSamples').checked){const sample=nearestPsdSample(p);if(sample)selectPsdPoint([sample.x,sample.y]);}return;}
+  pause();if(mode==='psd-point'){selectPsdPoint(p);return;}
+  if(mode==='points'){try{addPoint(...p);}catch(error){showError(error);}return;}
+  drag={kind:mode==='psd-region'?'psd-region':'roi',start:p};$('original').setPointerCapture(e.pointerId);
+};
+$('original').onpointermove=e=>{
+  if(drag?.kind==='psd-region'){psdDraftRegion=psdRectangle(drag.start,imagePosition(e));drawVideos();return;}
+  if(drag?.kind!=='roi')return;const p=imagePosition(e),s=drag.start,w=clip.metadata.width,h=clip.metadata.height;roi=[Math.max(0,Math.min(s[0],p[0])),Math.max(0,Math.min(s[1],p[1])),Math.min(w,Math.abs(s[0]-p[0])),Math.min(h,Math.abs(s[1]-p[1]))].map(Math.round);roi[2]=Math.min(roi[2],w-roi[0]);roi[3]=Math.min(roi[3],h-roi[1]);drawVideos();
+};
+$('original').onpointerup=e=>{
+  if(drag?.kind==='psd-region'){const box=psdRectangle(drag.start,imagePosition(e));drag=null;psdDraftRegion=null;selectPsdRegion(box);drawVideos();return;}
+  if(drag?.kind==='roi'){drag=null;if(roi&&Math.min(roi[2],roi[3])<8)roi=null;settingsChanged();}
+};
+$('original').onpointercancel=()=>{if(drag?.kind==='psd-region'){drag=null;psdDraftRegion=null;drawVideos();}};
+$('original').onkeydown=e=>{
+  if(!clip||busy)return;
+  if(e.key==='Escape'&&mode.startsWith('psd-')){e.preventDefault();drag=null;psdDraftRegion=null;setMode('inspect');return;}
+  if(!['points','psd-point'].includes(mode))return;
+  const delta=e.shiftKey?10:1;
+  if(e.key.startsWith('Arrow')){e.preventDefault();cursor[0]=Math.max(16,Math.min(clip.metadata.width-17,cursor[0]+(e.key==='ArrowRight'?delta:e.key==='ArrowLeft'?-delta:0)));cursor[1]=Math.max(16,Math.min(clip.metadata.height-17,cursor[1]+(e.key==='ArrowDown'?delta:e.key==='ArrowUp'?-delta:0)));$('pointX').value=cursor[0];$('pointY').value=cursor[1];drawVideos();}
+  else if(e.key==='Enter'){e.preventDefault();if(mode==='psd-point')selectPsdPoint(cursor);else{try{addPoint(...cursor);}catch(error){showError(error);}}}
+};
 $('original').onfocus=drawVideos;$('original').onblur=drawVideos;
 async function runAnalysis(){
   const result=await api('/api/analyze',{id:clip.id,revision,points,axis:$('axis').value,frequency:Number($('frequency').value),reference_last:$('cameraReference').checked});
@@ -140,9 +161,9 @@ function drawSpectrum(){
     for(const peak of spectrum.psd_peaks){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=peak.frequency_hz.toFixed(2)+' Hz';button.disabled=busy;button.title='Select this PSD peak as the target frequency';button.onclick=()=>{$('frequency').value=peak.frequency_hz.toFixed(3);targetChanged();};$('spectrumLegend').append(button);}
     $('spectralHelp').textContent=`One-sided full-record Hann periodogram · linear detrend · ${m.duration_s.toFixed(3)} s record · Hann ENBW ${m.enbw_hz.toFixed(3)} Hz. Mean of individual PSDs, so opposite-phase motion does not cancel. No segment averaging, zero padding or gap filling. PSD uses original displacement, independent of target, band and magnification; ${m.timing_basis}. Camera-reference subtraction: ${spectrum.reference_last?'last selected point (excluded from mean)':'off'}. ${highpass?`High-pass ${highpass} Hz: fourth-order Butterworth in SOS form, forward-backward with odd reflection padding, after linear detrending. Zero phase; two-pass gain is −6.02 dB at the cutoff. Edge transients and attenuation near the cutoff remain; this does not establish that suppressed motion was camera jitter. Applied only to PSD and amplitude spectrum; fits, point traces and response videos retain original motion.`:'High-pass off.'} Peak bins guide selection; they do not identify structural modes.`;
   }else{
-    ctx.fillStyle='#96acbd';ctx.fillText(timingConfirmed?'Measure PSD to see peaks':'Confirm timing to see peaks',L+8,T+52);
+    ctx.fillStyle='#96acbd';ctx.fillText(spectrum?'PSD withheld: incomplete tracks':timingConfirmed?'Measure PSD to see peaks':'Confirm timing to see peaks',L+8,T+52);
     const m=spectrum?.psd_metadata;
-    $('spectrumSummary').textContent=m?`PSD withheld: 0/${m.total_trace_count} complete tracks. Choose textured points or a different ROI under Advanced.`:timingConfirmed?'Measure the original motion, then click a peak or enter a frequency.':'Confirm timing to measure the frequency content.';
+    $('spectrumSummary').textContent=m?`PSD withheld: 0/${m.total_trace_count} complete tracks. Choose another point or region on Original.`:timingConfirmed?'Measure the original motion, then click a peak or enter a frequency.':'Confirm timing to measure the frequency content.';
     $('spectralHelp').textContent='PSD uses original tracked X/Y displacement, not image brightness or magnified motion. Traces with rejected samples are withheld.';
   }
   if(highpass){ctx.fillStyle='#ffd08916';ctx.fillRect(L,T,Math.min(xw,highpass/maxF*xw),yh);ctx.strokeStyle='#ffd08980';ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(toX(highpass),T);ctx.lineTo(toX(highpass),H-B);ctx.stroke();ctx.setLineDash([]);}

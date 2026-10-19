@@ -13,14 +13,14 @@ function readSettings(){
   const spectrum_highpass_hz=$('spectrumHighpass').checked?finiteInput('highpassCutoff','PSD high-pass cutoff'):0;
   if($('spectrumHighpass').checked&&!(spectrum_highpass_hz>=2*clip.metadata.resolution_hz&&spectrum_highpass_hz<clip.metadata.nyquist))throw fieldError(`PSD cutoff must be at least ${(2*clip.metadata.resolution_hz).toFixed(3)} Hz and below ${clip.metadata.nyquist.toFixed(3)} Hz.`,'highpassCutoff');
   return {frequency,bandwidth,linked:$('linkedBand').checked,low:finiteInput('low','Band low edge'),high:finiteInput('high','Band high edge'),gain,
-    axis:$('axis').value,points,roi,reference:$('fieldReference').value,reference_last:$('cameraReference').checked,calibration,spectrum_highpass_hz};
+    axis:$('axis').value,points,roi,reference:$('fieldReference').value,reference_last:$('cameraReference').checked,calibration,spectrum_highpass_hz,spectrum_source:psdSource,spectrum_point:psdPoint,spectrum_region:psdRegion};
 }
 function readDisplay(){return {view:$('responseView').value,sensitivity:Number($('sensitivity').value),modal_gain:Number($('modalGain').value),phase:Number($('modalPhase').value),frame,timing_mode:$('timingMode').value,timing_confirmed:timingConfirmed};}
 function applySettings(settings,ui){
   for(const id of ['frequency','bandwidth','low','high','gain','axis'])$(id).value=settings[id];
   $('linkedBand').checked=settings.linked;$('calibration').value=settings.calibration??'';$('cameraReference').checked=settings.reference_last;$('fieldReference').value=settings.reference;
   $('spectrumHighpass').checked=(settings.spectrum_highpass_hz||0)>0;$('highpassCutoff').value=settings.spectrum_highpass_hz||5;
-  points=settings.points.map(p=>[...p]);roi=settings.roi?.slice()||null;
+  points=settings.points.map(p=>[...p]);roi=settings.roi?.slice()||null;psdSource=settings.spectrum_source||'auto';psdPoint=settings.spectrum_point?.slice()||null;psdRegion=settings.spectrum_region?.slice()||null;psdDraftRegion=null;psdSampling=null;psdSamplingIdentity=null;
   $('responseView').value=ui.view;$('sensitivity').value=ui.sensitivity;$('modalGain').value=ui.modal_gain;$('modalPhase').value=ui.phase;
   $('modalPhaseLabel').textContent=Math.round(ui.phase)+'°';$('modalGainValue').textContent=ui.modal_gain+'×';
   $('timingMode').value=ui.timing_mode;timingConfirmed=ui.timing_confirmed;
@@ -33,7 +33,7 @@ function syncRoiInputs(){
   $('pointSummary').textContent=points.length?points.map((p,i)=>`P${i+1}: (${p[0]}, ${p[1]})`).join(' · '):'No manual points. Automatic spatial sampling is available.';
 }
 function clearResultsLocal(){
-  if(spectrumIdentity!==currentSpectrumIdentity()){displacementSpectrum=null;spectrumIdentity=null;}
+  if(spectrumIdentity!==currentSpectrumIdentity()){displacementSpectrum=null;spectrumIdentity=null;psdSampling=null;psdSamplingIdentity=null;}
   pause();frameRequest++;analysis=null;analysisKey=null;renderKey=null;renderInfo=null;responsePixels=null;heatLayer=null;maskLayer=null;
   amplifiedImage?.close();amplifiedImage=null;invalidateField();$('results').replaceChildren();$('phaseLabel').textContent='NEEDS ANALYSIS';$('traceHelp').textContent='';notes('renderWarnings',[]);clearVideoDownload();drawVideos();drawSpectrum();drawTrace();
 }
@@ -50,7 +50,7 @@ function flushSettings(){
     if(!clip||savedSerial===draftSerial&&!forceInvalidate)return;
     const serial=draftSerial,id=clip.id,settings=readSettings(),ui=readDisplay(),invalidate=forceInvalidate;
     const result=await api('/api/settings',{id,revision,settings,ui,invalidate});
-    if(clip?.id!==id)return;revision=result.revision;savedSerial=serial;dirty=draftSerial!==serial;if(!dirty)forceInvalidate=false;updateUI();
+    if(clip?.id!==id)return;revision=result.revision;savedSerial=serial;dirty=draftSerial!==serial;if(!dirty)forceInvalidate=false;if(!dirty&&psdSamplingIdentity!==currentSpectrumIdentity())await refreshSampling();updateUI();
   });
   return syncChain;
 }
@@ -87,7 +87,7 @@ function updateUI(){
   else $('appliedSummary').textContent=timingConfirmed?'Choose the target and analyze. No manual points required.':'Confirm timing, then analyze. No manual points required.';
   if(clip){$('bandHelp').textContent=`Resolution ${clip.metadata.resolution_hz.toFixed(3)} Hz. Band must be wider than one bin and below ${clip.metadata.nyquist.toFixed(2)} Hz; at least two cycles at its low edge.`;}
   for(const button of document.querySelectorAll('[data-view]')){const view=button.dataset.view;button.disabled=busy||!clip||(fieldViews.has(view)?!spatialField:!renderKey);}
-  updateResponseHelp();drawSpectrum();
+  updateResponseHelp();drawSpectrum();updateSamplingControls();
 }
 async function installInBrowser(data,{restored=false}={}){
   loaded=false;clearTimeout(saveTimer);await syncChain.catch(()=>{});pause();epoch++;frameRequest++;
@@ -99,6 +99,7 @@ async function installInBrowser(data,{restored=false}={}){
   mode='inspect';$('pointMode').setAttribute('aria-pressed','false');$('roiMode').setAttribute('aria-pressed','false');$('original').classList.remove('editing');
   analysis=data.analysis||null;analysisKey=data.analysis_key||null;renderKey=data.render_key||null;
   displacementSpectrum=timingConfirmed?(data.spectrum||null):null;spectrumIdentity=displacementSpectrum?currentSpectrumIdentity():null;
+  if(data.sampling||displacementSpectrum?.sampling)installSampling(data.sampling||displacementSpectrum.sampling);else await refreshSampling();
   if(data.render_info&&renderKey)await loadResponse({...data.render_info,key:renderKey});
   if(data.field&&data.field_key){spatialField={...data.field,key:data.field_key};referenceImage=await getImage(frameUrl('original',0));showFieldSummary();}
   notes('inputWarnings',m.warnings);notes('renderWarnings',data.render_info?.warnings||[]);drawResults();drawSpectrum();drawTrace();

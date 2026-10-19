@@ -38,7 +38,7 @@ def harmonic_fit(values, fps, frequency):
                 harmonic_power_fraction=float(fraction))
 
 
-def sample_grid(video, roi=None):
+def sample_grid(video, roi=None, contained=False):
     _, h, w, _ = video.frames.shape
     x0, y0, x1, y1 = 16, 16, w - 16, h - 16
     if roi is not None:
@@ -47,7 +47,12 @@ def sample_grid(video, roi=None):
         x, y, rw, rh = map(int, roi)
         if rw < 8 or rh < 8 or x < 0 or y < 0 or x + rw > w or y + rh > h:
             raise ValueError('ROI must lie inside the image and be at least 8×8 pixels.')
-        x0, y0, x1, y1 = max(x0,x), max(y0,y), min(x1,x+rw), min(y1,y+rh)
+        if contained:
+            rx,ry,rw,rh = roi
+            x0,y0 = max(x0,math.ceil(rx+15)),max(y0,math.ceil(ry+15))
+            x1,y1 = min(x1,math.floor(rx+rw-15)+1),min(y1,math.floor(ry+rh-15)+1)
+        else:
+            x0, y0, x1, y1 = max(x0,x), max(y0,y), min(x1,x+rw), min(y1,y+rh)
     if x1 <= x0 or y1 <= y0:
         raise ValueError('Spatial analysis needs a region away from the 16 px image border.')
     step = max(24, int(math.ceil(math.sqrt((x1-x0)*(y1-y0)/196))))

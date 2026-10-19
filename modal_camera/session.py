@@ -17,7 +17,8 @@ def defaults(demo=False):
     return dict(frequency=3. if demo else 95., bandwidth=1. if demo else 4., linked=True,
                 low=2.5 if demo else 93., high=3.5 if demo else 97., gain=4., axis='y',
                 points=[[90,94],[230,94]] if demo else [], roi=None, reference='auto',
-                reference_last=False, calibration=None, spectrum_highpass_hz=0.)
+                reference_last=False, calibration=None, spectrum_highpass_hz=0.,
+                spectrum_source='auto', spectrum_point=None, spectrum_region=None)
 
 
 def validate_settings(settings, video):
@@ -45,6 +46,31 @@ def validate_settings(settings, video):
     if not isinstance(points,list) or len(points)>8:
         raise ValueError('Select up to eight points.')
     width,height = video.metadata['width'],video.metadata['height']
+    result['spectrum_source'] = result.get('spectrum_source','auto')
+    if result['spectrum_source'] not in ('auto','frame','point','region'):
+        raise ValueError('Choose a valid PSD source: frame, point or region.')
+    point = result.get('spectrum_point')
+    if point is not None:
+        if not isinstance(point,list) or len(point)!=2:
+            raise ValueError('PSD point must contain x and y coordinates.')
+        x,y = [number(v,'PSD point coordinate') for v in point]
+        if not 16 <= x < width-16 or not 16 <= y < height-16:
+            raise ValueError('PSD point must be at least 16 analysis pixels from the image edges.')
+        point = [x,y]
+    result['spectrum_point'] = point
+    region = result.get('spectrum_region')
+    if region is not None:
+        if not isinstance(region,list) or len(region)!=4:
+            raise ValueError('PSD region must contain x, y, width and height.')
+        x,y,w,h = [number(v,'PSD region coordinate') for v in region]
+        if min(x,y)<0 or min(w,h)<32 or x+w>width or y+h>height:
+            raise ValueError('PSD region must be inside the image and at least 32 by 32 analysis pixels.')
+        region = [x,y,w,h]
+    result['spectrum_region'] = region
+    if result['spectrum_source']=='point' and point is None:
+        raise ValueError('Select a PSD point on the original video.')
+    if result['spectrum_source']=='region' and region is None:
+        raise ValueError('Select a PSD region on the original video.')
     checked = []
     for point in points:
         if not isinstance(point,list) or len(point)!=2:
@@ -66,8 +92,14 @@ def validate_settings(settings, video):
 
 
 def signature(settings, kind):
-    keys = dict(spectrum=('axis','points','reference_last','roi','spectrum_highpass_hz'),
-                analysis=('frequency','axis','points','reference_last'),
+    if kind == 'spectrum':
+        source = settings.get('spectrum_source','auto')
+        keys = ['axis','reference_last','spectrum_highpass_hz','spectrum_source']
+        if source=='auto' or settings['reference_last']:
+            keys.append('points')
+        keys += {'auto':['roi'],'point':['spectrum_point'],'region':['spectrum_region'],'frame':[]}[source]
+        return {key:settings[key] for key in keys}
+    keys = dict(analysis=('frequency','axis','points','reference_last'),
                 field=('frequency','axis','points','reference_last','roi','reference'),
                 render=('low','high','gain','roi'))[kind]
     return {key:settings[key] for key in keys}

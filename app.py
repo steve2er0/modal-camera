@@ -16,8 +16,9 @@ import numpy as np
 from werkzeug.exceptions import HTTPException
 from modal_camera.processing import decode_video, magnify, track_points, track_locations, analyze_tracks
 from modal_camera.synthetic import write_demos
-from modal_camera.response import measure_field, modal_frame, sample_grid
+from modal_camera.response import measure_field, modal_frame
 from modal_camera.spectrum import displacement_spectrum, validate_highpass
+from modal_camera.sampling import sampling_plan, sampling_payload
 from modal_camera.video_export import export_metadata, export_frames, write_mp4, export_filename
 from modal_camera.session import defaults, validate_settings, validate_ui, signature
 
@@ -100,7 +101,7 @@ def session_payload():
     video = state['video']
     return dict(clip=dict(id=state['id'],metadata=video.metadata),settings=state['settings'],
                 revision=state['revision'],ui=state['ui'],spectrum=state.get('spectrum'),
-                spectrum_key=state.get('spectrum_key'),analysis=state.get('analysis'),
+                spectrum_key=state.get('spectrum_key'),sampling=current_sampling(),analysis=state.get('analysis'),
                 analysis_key=state.get('analysis_key'),render_info=state.get('render_info'),
                 render_key=state.get('render_key'),field=state.get('field'),field_key=state.get('field_key'))
 
@@ -202,6 +203,39 @@ def demo():
         return install_clip(decode_video(demos/(name+'.avi')),True)
 
 
+def spectrum_trace_pool():
+    video = state['video']
+    identity = (id(video.frames),video.source_width,video.source_height)
+    traces = {}
+    for name in ('field_cache','spectrum_point_cache','spectrum_reference_cache'):
+        cached = state.get(name)
+        if cached and cached.get('identity') == identity:
+            traces.update({tuple(p):t for p,t in zip(cached['coordinates'],cached['traces'])})
+    traces.update({tuple(p):t for p,t in zip(state.get('point_coordinates') or [],state.get('traces') or [])})
+    return traces
+
+
+def current_sampling():
+    computed = state.get('spectrum')
+    if computed and computed.get('sampling'):
+        return computed['sampling']
+    video, settings = state['video'], state['settings']
+    try:
+        plan = sampling_plan(video,settings)
+    except ValueError as exc:
+        return dict(mode='region',label='No usable sample centers',region=settings.get('spectrum_region') or settings['roi'],
+                    samples=[],accepted_count=0,selected_count=0,reference_frame=0,note=str(exc))
+    return sampling_payload(video,settings,plan,spectrum_trace_pool())
+
+
+@app.get('/api/sampling/<clip_id>')
+def sampling(clip_id):
+    with lock:
+        current(clip_id)
+        check_revision(request.args)
+        return jsonify(current_sampling())
+
+
 @app.post('/api/spectrum')
 def spectrum():
     data = json_object()
@@ -209,25 +243,35 @@ def spectrum():
         video = current(data.get('id'))
         check_revision(data)
         settings = state['settings']
-        points = settings['points']
         if not state.get('spectrum'):
-            if points:
-                if state.get('point_coordinates') != points:
-                    state.update(traces=track_points(video,points),point_coordinates=points)
-                traces = state['traces']
-            else:
-                if settings['reference_last']:
-                    raise ValueError('Camera reference subtraction needs at least two selected points.')
-                coordinates, _ = sample_grid(video,settings['roi'])
-                identity = (id(video.frames),video.source_width,video.source_height)
-                cached = state.get('field_cache')
-                if cached is None or cached['coordinates'] != coordinates or cached.get('identity') != identity:
-                    cached = dict(coordinates=coordinates,identity=identity,
-                                  traces=track_locations(video,coordinates))
-                    state['field_cache'] = cached
+            plan = sampling_plan(video,settings)
+            coordinates = plan['coordinates']
+            pool = spectrum_trace_pool()
+            identity = (id(video.frames),video.source_width,video.source_height)
+            cached = state.get('field_cache')
+            if plan['spatial'] and cached and cached.get('identity') == identity and cached['coordinates'] == coordinates:
                 traces = cached['traces']
-            result = displacement_spectrum(video,traces,settings['axis'],spatial=not points,
+            elif all(tuple(p) in pool for p in coordinates):
+                traces = [dict(pool[tuple(p)],point=i+1) for i,p in enumerate(coordinates)]
+            else:
+                traces = track_locations(video,coordinates) if plan['spatial'] else track_points(video,coordinates)
+            cache = dict(coordinates=coordinates,identity=identity,traces=traces)
+            if plan['spatial']:
+                state['field_cache'] = cache
+            else:
+                state['spectrum_point_cache'] = cache
+            if settings['reference_last'] and plan['mode'] != 'points':
+                if len(settings['points']) < 2:
+                    raise ValueError('Camera subtraction needs at least two measurement points with the last stationary.')
+                position = settings['points'][-1]
+                stationary = pool.get(tuple(position))
+                if stationary is None:
+                    stationary = track_points(video,[position])[0]
+                state['spectrum_reference_cache'] = dict(identity=identity,coordinates=[position],traces=[stationary])
+                traces = traces + [stationary]
+            result = displacement_spectrum(video,traces,settings['axis'],spatial=plan['spatial'],
                                            reference_last=settings['reference_last'],highpass_hz=settings['spectrum_highpass_hz'])
+            result['sampling'] = current_sampling()
             state.update(spectrum=result,spectrum_key=secrets.token_hex(8))
         return jsonify(key=state['spectrum_key'],revision=state['revision'],**state['spectrum'])
 

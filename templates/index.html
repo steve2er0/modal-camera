@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Modal Camera · Frequency response explorer</title>
-  <link rel="stylesheet" href="/static/style.css?v=8">
-  <script defer src="/static/app.js?v=8"></script><script defer src="/static/response.js?v=6"></script><script defer src="/static/workflow.js?v=3"></script>
+  <link rel="stylesheet" href="/static/style.css?v=9">
+  <script defer src="/static/app.js?v=9"></script><script defer src="/static/response.js?v=6"></script><script defer src="/static/sampling.js?v=1"></script><script defer src="/static/workflow.js?v=4"></script>
 </head>
 <body>
 <header>
@@ -35,6 +35,7 @@
         <div class="panelhead"><h3><span class="step">2</span> Choose the response</h3><span id="resultState" class="state-pill">Not analyzed</span></div>
         <div class="response-setup"><section class="spectrum-pane" aria-label="Displacement spectrum">
         <div class="spectrum-heading"><strong id="spectrumUnits">Original displacement PSD</strong></div>
+        <p id="psdSourceSummary" class="hint">PSD source: automatic samples.</p>
         <div class="spectrum-filter"><label class="check"><input id="spectrumHighpass" type="checkbox" aria-describedby="highpassHelp">High-pass PSD</label><label class="cutoff-input" for="highpassCutoff">Cutoff / Hz<input id="highpassCutoff" type="number" min=".001" value="5" step="any" disabled aria-describedby="highpassHelp"></label><button id="measureSpectrum" class="secondary">Measure PSD</button></div>
         <p id="highpassHelp" class="hint">PSD only. Fits and videos keep their original motion.</p>
         <canvas id="spectrum" width="600" height="210" aria-label="Displacement spectrum. Click a peak button or enter a target frequency beside the plot."></canvas>
@@ -53,8 +54,13 @@
       <button class="secondary" data-view="heatmap">Heatmap</button><button class="secondary" data-view="isolated">Isolated</button><button class="secondary" data-view="amplitude">Amplitude</button><button class="secondary" data-view="phase">Phase</button><button class="secondary" data-view="modal">Animation</button><button class="secondary" data-view="amplified">Magnified</button>
     </div></div>
     <select id="responseView" aria-label="Response view" hidden><option value="heatmap">Frequency heatmap</option><option value="isolated">Isolated responding regions</option><option value="amplitude">Local displacement amplitude</option><option value="phase">Local relative phase</option><option value="modal">Modal animation</option><option value="amplified">Magnified video</option></select>
+    <div class="panel psd-sampling-panel">
+      <div class="psd-sampling-toolbar"><strong id="psdSamplingTitle">PSD sampling on Original</strong><div role="group" aria-label="PSD sampling tools"><button id="psdFullFrame" class="secondary">Whole frame</button><button id="psdPickPoint" class="secondary" aria-pressed="false">Pick a point</button><button id="psdSelectRegion" class="secondary" aria-pressed="false">Select plate / region</button></div><label class="check"><input id="psdShowSamples" type="checkbox" checked>Show samples</label></div>
+      <div class="psd-sampling-info"><label for="psdSampleSelect">Point PSD<select id="psdSampleSelect"><option value="">Click a dot or choose a sample…</option></select></label><p id="psdSamplingHelp" class="hint">Dots mark reference-frame sample centers. Green: usable in this PSD · ×: incomplete · gray: other locations.</p></div>
+      <details class="psd-region-inputs"><summary>Region coordinates</summary><div class="settings"><label>X / analysis px<input id="psdRegionX" type="number" min="0" step="1"></label><label>Y / analysis px<input id="psdRegionY" type="number" min="0" step="1"></label><label>Width / analysis px<input id="psdRegionWidth" type="number" min="32" step="1"></label><label>Height / analysis px<input id="psdRegionHeight" type="number" min="32" step="1"></label></div><button id="psdApplyRegion" class="secondary">Use region for PSD</button></details>
+    </div>
     <div class="videogrid">
-      <article class="panel video-panel"><div class="panelhead"><h3>Original</h3><span>MEASUREMENTS USE THESE FRAMES</span></div><div class="canvaswrap"><canvas id="original" width="640" height="400" tabindex="0" aria-label="Original video. Enable Add points under Advanced, then click or use arrow keys and Enter. ROI can also be entered numerically."></canvas></div></article>
+      <article class="panel video-panel"><div class="panelhead"><h3>Original</h3><span>PSD SAMPLE CENTERS · FRAME 0</span></div><div class="canvaswrap"><canvas id="original" width="640" height="400" tabindex="0" aria-label="Original video with PSD sample centers. Click a dot for its PSD, use Pick a point with arrow keys and Enter, or Select plate / region and drag. Escape cancels selection. Point and region controls also have keyboard alternatives."></canvas></div></article>
       <article class="panel video-panel"><div class="panelhead"><h3 id="visualizationTitle">Frequency heatmap</h3><span id="renderLabel">ANALYZE RESPONSE</span></div><div class="canvaswrap"><canvas id="amplified" width="640" height="400" tabindex="0" aria-label="Frequency response preview. For displacement views use arrow keys or the sample selector to inspect amplitudes and phases."></canvas></div></article>
     </div>
     <div class="preview-controls panel">

@@ -39,9 +39,19 @@ Open **http://127.0.0.1:8765** in Edge or Chrome. No PowerShell activation or ex
 
 1. **Open video.** New recordings start at a **95 Hz target with a 4 Hz bandwidth**. Calibration and manual points reset for each recording. The introductory panel collapses after loading. **Try the 3 Hz demo** starts a deterministic example and runs the complete analysis automatically.
 2. **Confirm timing.** Choose encoded playback timing or a known original capture rate. A capture override requires the explicit one-encoded-frame-per-captured-sample assumption. Confirmed timing collapses to a summary; **Change** reopens its controls. This does not independently verify physical timing. Your target frequency stays unchanged when the timebase changes.
-3. **Choose the response.** The original-displacement PSD appears here after timing confirmation. With no manual points it averages the individual PSDs of complete, quality-accepted spatial-grid tracks; opposite-phase motion does not cancel. Click a peak button or the plot to set the target and linked band, or enter a frequency. **Measure PSD / Refresh PSD** updates it after axis, ROI, point or camera-reference changes. The PSD stays visible when you change the target, bandwidth or magnification. **Analyze response** then filters the band, analyzes any optional original points, and builds the sampled displacement/phase field. Manual points are not required. The band follows target ± half the bandwidth by default. For the plate experiment, 95 Hz and 4 Hz width selects 93–97 Hz. The current analysis rate must support that band; a 30 fps encoded clip cannot represent 95 analysis-time Hz without an appropriate capture-time assumption.
+3. **Choose the response.** The original-displacement PSD appears here after timing confirmation. By default, with no manual measurement points, it averages the individual PSDs of complete, quality-accepted spatial-grid tracks; opposite-phase motion does not cancel. Click a peak button or the plot to set the target and linked band, or enter a frequency. **Measure PSD / Refresh PSD** updates it after axis, ROI, point or camera-reference changes. The PSD stays visible when you change the target, bandwidth or magnification. **Analyze response** then filters the band, analyzes any optional original points, and builds the sampled displacement/phase field. Manual points are not required. The band follows target ± half the bandwidth by default. For the plate experiment, 95 Hz and 4 Hz width selects 93–97 Hz. The current analysis rate must support that band; a 30 fps encoded clip cannot represent 95 analysis-time Hz without an appropriate capture-time assumption.
 4. **Explore.** Aligned previews offer Heatmap, Isolated, Amplitude, Phase, Animation, and Magnified views. **Show weaker responses** changes the display threshold. Animation has a separate display gain and a one-second fitted cycle. Select a measured patch from the accessible sample selector, hover/click it, or focus the response image and use arrow keys to inspect amplitude, relative phase, accepted frames and residuals.
 5. **Export.** Choose an available MP4 or data format and click **Export**. A permanent **Save** link is provided for the prepared file. Errors stay in the workspace. Point traces CSV becomes available only when manual points have been analyzed.
+
+### Choose the PSD sampling location
+
+Sampling centers are overlaid on **Original** by default. Dots mark fixed **frame-0 reference positions**, rather than moving per-frame tracking markers. Green means a complete track usable for the current PSD; a cross marks an incomplete selected track, and gray marks another available location. **Show samples** hides or shows this overlay. The source caption above the PSD names the active selection, and Analysis JSON includes each sample's coordinates, selection and quality eligibility.
+
+- **Click a dot** to compute the PSD from that patch. **Point PSD** provides the same selection with a keyboard-accessible list. **Pick a point** lets you choose any textured location, or use arrow keys and Enter on the original canvas. A white outline shows the selected nominal 31-pixel reference window.
+- **Select plate / region** pauses at frame zero; drag a rectangle around the plate. **Region coordinates** is the numeric alternative. The region must be at least 32 by 32 analysis pixels. Nominal 31-pixel reference windows fit inside it; the pyramidal tracker can use broader image context, and a rectangle does not segment the plate's outline. Escape cancels an unfinished selection.
+- **Whole frame** restores the automatic full-frame grid. Selecting a point or region updates the PSD automatically, preserving the target, high-pass cutoff, measurement points, response ROI, magnified video and amplitude/phase results. These are PSD-only selections. Until an explicit PSD source is chosen, Advanced measurement points (or the Advanced ROI when no points exist) retain their earlier behavior.
+
+Selection and sample quality recover on reload while the local session is running. Selecting geometry uses frame zero so the click locations correspond to the displayed reference image. Rejected samples are never filled to obtain a spectrum.
 
 ### PSD high-pass and layout
 
@@ -117,12 +127,14 @@ The [paper's Table 1](https://people.csail.mit.edu/mrub/papers/vidmag.pdf#page=6
 node --check static/app.js  # optional syntax checks if Node is installed
 node --check static/response.js
 node --check static/workflow.js
+node --check static/sampling.js
 ```
 
 Windows equivalents use `.\.venv\Scripts\python.exe`. Node is not needed to run the app.
 
 - `modal_camera/processing.py`: bounded decode, temporal filtering, pyramid magnification, tracking/quality and harmonic analysis.
 - `modal_camera/spectrum.py`: target-independent original-displacement PSDs, spatial power averaging and peak bins.
+- `modal_camera/sampling.py`: independent PSD selection geometry, reference sample positions and quality membership.
 - `modal_camera/response.py`: sampled original-displacement harmonic field, phase references and supported-cell animation warping.
 - `modal_camera/video_export.py`: annotated heatmap/isolation/modal rendering and local H.264 MP4 encoding.
 - `modal_camera/session.py`: validated clip settings, display state and result dependencies.

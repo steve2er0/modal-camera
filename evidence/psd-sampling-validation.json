@@ -1,0 +1,218 @@
+{
+  "tests": "112 passed in 66.10s",
+  "browser": "Codex in-app browser, 127.0.0.1:8766",
+  "source": "95Hz_AlPlate_wGrid_frame_order_30fps.avi",
+  "analysis_fps": 240.0,
+  "timing_basis": "user-assumed capture time: one frame per captured sample",
+  "selection": "region",
+  "region_analysis_px": [
+    35.0,
+    50.0,
+    235.0,
+    55.0
+  ],
+  "accepted_tracks": 17,
+  "selected_tracks": 18,
+  "peak_hz": 94.87179487179489,
+  "highpass_hz": 10.0,
+  "membership": [
+    {
+      "eligible": true,
+      "index": 0,
+      "label": "Sample 1",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 50.0,
+      "y": 65.0
+    },
+    {
+      "eligible": true,
+      "index": 1,
+      "label": "Sample 2",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 74.0,
+      "y": 65.0
+    },
+    {
+      "eligible": false,
+      "index": 2,
+      "label": "Sample 3",
+      "reference": false,
+      "selected": true,
+      "used": false,
+      "x": 98.0,
+      "y": 65.0
+    },
+    {
+      "eligible": true,
+      "index": 3,
+      "label": "Sample 4",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 122.0,
+      "y": 65.0
+    },
+    {
+      "eligible": true,
+      "index": 4,
+      "label": "Sample 5",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 146.0,
+      "y": 65.0
+    },
+    {
+      "eligible": true,
+      "index": 5,
+      "label": "Sample 6",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 170.0,
+      "y": 65.0
+    },
+    {
+      "eligible": true,
+      "index": 6,
+      "label": "Sample 7",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 194.0,
+      "y": 65.0
+    },
+    {
+      "eligible": true,
+      "index": 7,
+      "label": "Sample 8",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 218.0,
+      "y": 65.0
+    },
+    {
+      "eligible": true,
+      "index": 8,
+      "label": "Sample 9",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 242.0,
+      "y": 65.0
+    },
+    {
+      "eligible": true,
+      "index": 9,
+      "label": "Sample 10",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 50.0,
+      "y": 89.0
+    },
+    {
+      "eligible": true,
+      "index": 10,
+      "label": "Sample 11",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 74.0,
+      "y": 89.0
+    },
+    {
+      "eligible": true,
+      "index": 11,
+      "label": "Sample 12",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 98.0,
+      "y": 89.0
+    },
+    {
+      "eligible": true,
+      "index": 12,
+      "label": "Sample 13",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 122.0,
+      "y": 89.0
+    },
+    {
+      "eligible": true,
+      "index": 13,
+      "label": "Sample 14",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 146.0,
+      "y": 89.0
+    },
+    {
+      "eligible": true,
+      "index": 14,
+      "label": "Sample 15",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 170.0,
+      "y": 89.0
+    },
+    {
+      "eligible": true,
+      "index": 15,
+      "label": "Sample 16",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 194.0,
+      "y": 89.0
+    },
+    {
+      "eligible": true,
+      "index": 16,
+      "label": "Sample 17",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 218.0,
+      "y": 89.0
+    },
+    {
+      "eligible": true,
+      "index": 17,
+      "label": "Sample 18",
+      "reference": false,
+      "selected": true,
+      "used": true,
+      "x": 242.0,
+      "y": 89.0
+    }
+  ],
+  "response_keys_unchanged": true,
+  "measurement_points_unchanged": true,
+  "response_roi_unchanged": true,
+  "browser_checks": [
+    "Original overlays reference sampling centers with complete/incomplete/unused styles",
+    "Clicking plate grid sample (40,88) computes one-point PSD with 94.87 Hz peak",
+    "Point dropdown chooses sample (50,65)",
+    "Pick a point: ArrowRight and Enter selects (152,85), 1/1 complete with 94.87 Hz peak",
+    "Escape cancels an unfinished point selection",
+    "Drag selects plate rectangle [35,50,235,55], 17/18 complete, 94.87 Hz peak",
+    "Whole frame restores 57/72 complete tracks",
+    "Numeric region control restores the plate region",
+    "Reload restores region, PSD membership and computed response views",
+    "Show samples toggles overlay",
+    "390 CSS pixel viewport has no horizontal overflow; video tiles both 156 px tall",
+    "Normal desktop video tiles both 309 px tall; viewport reset",
+    "Analysis JSON exports the same PSD membership"
+  ]
+}
